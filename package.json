@@ -1,0 +1,28 @@
+{
+  "name": "fossibot-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "fossibot-net": "file:plugins/fossibot-net"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
