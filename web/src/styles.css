@@ -1,0 +1,84 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #0b0d0e;
+  --color-surface: #131718;
+  --color-surface-2: #1a1f21;
+  --color-line: #252b2e;
+  --color-text: #eef2f3;
+  --color-muted: #8b969b;
+  --color-faint: #5c666b;
+  --color-accent: #34d17a;
+  --color-warn: #f2b33d;
+  --color-bad: #ff5c5c;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  body {
+    min-height: 100dvh;
+  }
+  button {
+    cursor: pointer;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .card {
+    background: var(--color-surface);
+    border: 1px solid rgb(255 255 255 / 0.05);
+    border-radius: 22px;
+  }
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 12px);
+  }
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  }
+  .fade-in {
+    animation: fade-in 220ms var(--ease-out-soft) both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
