@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { Auth, Session } from '../auth.ts';
+import { serveStatic } from './static.ts';
 
 export const SESSION_COOKIE = 'fb_session';
 const MAX_BODY = 64 * 1024;
@@ -127,12 +128,16 @@ export function createHttpServer(opts: {
   routes: Route[];
   auth: Auth;
   allowedOrigins: string[];
+  staticDir?: string;
   log?: (m: string) => void;
 }): http.Server {
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://hub');
       const method = req.method ?? 'GET';
+      if (opts.staticDir && !url.pathname.startsWith('/api/') && serveStatic(opts.staticDir, url.pathname, method, res)) {
+        return;
+      }
       const found = matchRoute(opts.routes, method, url.pathname);
       if (!found) return send(res, { status: 404, json: { error: 'not_found' } });
       if (method !== 'GET' && !originAllowed(req, opts.allowedOrigins)) {

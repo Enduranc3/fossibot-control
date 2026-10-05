@@ -5,3 +5,5 @@ dist/
 *.db
 *.db-wal
 *.db-shm
+.dev-data/
+ui-check/

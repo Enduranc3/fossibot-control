@@ -10,7 +10,11 @@
     "test": "TZ=Europe/Kyiv vitest run",
     "typecheck": "tsc --noEmit",
     "sim": "node tools/station-sim.ts",
-    "build:hub": "node scripts/build-hub.mjs"
+    "build:hub": "node scripts/build-hub.mjs",
+    "build:web": "vite build --config web/vite.config.ts && node scripts/build-sw.mjs",
+    "build": "npm run build:web && npm run build:hub",
+    "dev:web": "vite --config web/vite.config.ts",
+    "dev:hub": "FOSSIBOT_DATA_DIR=.dev-data FOSSIBOT_STATION_ALLOW=127.0.0. node hub/src/main.ts"
   },
   "dependencies": {
     "ws": "^8.22.0"

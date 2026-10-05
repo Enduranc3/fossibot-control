@@ -31,6 +31,8 @@ export interface HubConfig {
   confirmMs?: number;
   flushIntervalMs?: number;
   gridRule?: GridRule;
+  /** Built web app to serve (dist/web); omitted = API only. */
+  webDir?: string;
   log?: (m: string) => void;
 }
 
@@ -137,7 +139,13 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
   };
 
   const ctx: HubContext = { db, auth, queue, prefs, state };
-  const server = createHttpServer({ routes: buildRoutes(ctx), auth, allowedOrigins: cfg.allowedOrigins, log });
+  const server = createHttpServer({
+    routes: buildRoutes(ctx),
+    auth,
+    allowedOrigins: cfg.allowedOrigins,
+    staticDir: cfg.webDir,
+    log,
+  });
   const liveHub = new LiveHub(server, { auth, allowedOrigins: cfg.allowedOrigins, hello: state });
   live = liveHub;
 
