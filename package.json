@@ -9,7 +9,8 @@
   "scripts": {
     "test": "TZ=Europe/Kyiv vitest run",
     "typecheck": "tsc --noEmit",
-    "sim": "node tools/station-sim.ts"
+    "sim": "node tools/station-sim.ts",
+    "build:hub": "node scripts/build-hub.mjs"
   },
   "dependencies": {
     "ws": "^8.22.0"
