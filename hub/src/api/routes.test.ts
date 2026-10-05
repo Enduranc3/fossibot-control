@@ -142,3 +142,17 @@ describe('request hygiene', () => {
     expect(await (await a.call('GET', '/api/health')).json()).toEqual({ ok: true, link: 'up' });
   });
 });
+describe('history routes', () => {
+  it('validates parameters', async () => {
+    const { as } = await loggedIn();
+    expect((await as('GET', '/api/history?from=10&to=5&metrics=soc')).status).toBe(400);
+    expect((await as('GET', '/api/history?from=0&to=100&metrics=password_hash')).status).toBe(400);
+    expect((await as('GET', '/api/history?from=0&to=100&metrics=soc&points=600')).status).toBe(200);
+    expect((await as('GET', '/api/energy?from=0&to=100&bucket=week')).status).toBe(400);
+    expect((await as('GET', '/api/outages/calendar?month=2026-13')).status).toBe(400);
+    expect((await as('GET', '/api/events?limit=500')).status).toBe(400);
+    const csv = await as('GET', '/api/export.csv?kind=events&from=0&to=100');
+    expect(csv.headers.get('content-type')).toMatch(/text\/csv/);
+    expect((await as('GET', '/api/export.csv?kind=samples&from=0&to=99999999')).status).toBe(400);
+  });
+});

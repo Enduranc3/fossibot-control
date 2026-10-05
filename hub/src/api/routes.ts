@@ -2,6 +2,7 @@ import { RateLimitError } from '../auth.ts';
 import { CommandError } from '../command-queue.ts';
 import type { HubContext } from '../context.ts';
 import { HttpError, clearSessionCookie, sessionCookie, type ApiResponse, type Route } from './http.ts';
+import { HISTORY_METRICS, exportCsv, listEvents, listOutages, outageCalendar, queryEnergy, queryHistory, type HistoryMetric } from '../history.ts';
 
 const STATUS_BY_COMMAND_ERROR = { invalid: 400, not_confirmed: 409, station_offline: 503 } as const;
 
@@ -14,6 +15,28 @@ function passwordFrom(body: unknown): string {
   if (typeof p !== 'string') throw new HttpError(400, 'bad_request', 'Потрібен пароль');
   return p;
 }
+
+function intParam(q: URLSearchParams, name: string, opts: { min?: number; max?: number; def?: number } = {}): number {
+  const raw = q.get(name);
+  if (raw === null || raw === '') {
+    if (opts.def !== undefined) return opts.def;
+    throw new HttpError(400, 'bad_request', `Потрібен параметр ${name}`);
+  }
+  const v = Number(raw);
+  if (!Number.isInteger(v) || (opts.min !== undefined && v < opts.min) || (opts.max !== undefined && v > opts.max)) {
+    throw new HttpError(400, 'bad_request', `Некоректний параметр ${name}`);
+  }
+  return v;
+}
+
+function range(q: URLSearchParams): { from: number; to: number } {
+  const from = intParam(q, 'from', { min: 0 });
+  const to = intParam(q, 'to', { min: 0 });
+  if (to <= from) throw new HttpError(400, 'bad_request', 'to має бути більшим за from');
+  return { from, to };
+}
+
+const nowSec = () => Math.floor(Date.now() / 1000);
 
 export function buildRoutes(ctx: HubContext): Route[] {
   return [
@@ -120,6 +143,87 @@ export function buildRoutes(ctx: HubContext): Route[] {
           return { json: ctx.prefs.update(req.body) };
         } catch (err) {
           throw new HttpError(400, 'invalid', err instanceof Error ? err.message : String(err));
+        }
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/history',
+      handler: (req) => {
+        const { from, to } = range(req.query);
+        const metrics = (req.query.get('metrics') ?? 'soc').split(',').filter(Boolean);
+        if (!metrics.length || metrics.some((m) => !(HISTORY_METRICS as string[]).includes(m))) {
+          throw new HttpError(400, 'bad_request', 'Невідома метрика');
+        }
+        const points = intParam(req.query, 'points', { min: 10, max: 2000, def: 600 });
+        return { json: queryHistory(ctx.db, { from, to, metrics: metrics as HistoryMetric[], points }) };
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/energy',
+      handler: (req) => {
+        const { from, to } = range(req.query);
+        const bucket = req.query.get('bucket') ?? 'day';
+        if (bucket !== 'hour' && bucket !== 'day' && bucket !== 'month') throw new HttpError(400, 'bad_request', 'bucket: hour/day/month');
+        return { json: queryEnergy(ctx.db, { from, to, bucket }) };
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/outages',
+      handler: (req) => {
+        const { from, to } = range(req.query);
+        return { json: listOutages(ctx.db, from, to) };
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/outages/calendar',
+      handler: (req) => {
+        const month = req.query.get('month') ?? '';
+        const m = /^(\d{4})-(\d{2})$/.exec(month);
+        if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) throw new HttpError(400, 'bad_request', 'month: YYYY-MM');
+        return { json: outageCalendar(ctx.db, month, nowSec()) };
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/events',
+      handler: (req) => {
+        const q = req.query;
+        const types = (q.get('type') ?? '').split(',').filter(Boolean);
+        return {
+          json: listEvents(ctx.db, {
+            from: q.has('from') ? intParam(q, 'from', { min: 0 }) : undefined,
+            to: q.has('to') ? intParam(q, 'to', { min: 0 }) : undefined,
+            cursor: q.has('cursor') ? intParam(q, 'cursor', { min: 1 }) : undefined,
+            types,
+            limit: intParam(q, 'limit', { min: 1, max: 200, def: 50 }),
+          }),
+        };
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/export.csv',
+      handler: (req) => {
+        const kind = req.query.get('kind');
+        if (kind !== 'samples' && kind !== 'energy' && kind !== 'events' && kind !== 'outages') {
+          throw new HttpError(400, 'bad_request', 'kind: samples/energy/events/outages');
+        }
+        const { from, to } = range(req.query);
+        try {
+          return {
+            text: exportCsv(ctx.db, kind, from, to),
+            contentType: 'text/csv; charset=utf-8',
+            headers: { 'content-disposition': `attachment; filename="fossibot-${kind}-${from}-${to}.csv"` },
+          };
+        } catch (err) {
+          if (err instanceof Error && err.message === 'range_too_large') {
+            throw new HttpError(400, 'range_too_large', 'Для посекундних даних — не більше 31 доби');
+          }
+          throw err;
         }
       },
     },
