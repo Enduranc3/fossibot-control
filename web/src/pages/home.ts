@@ -1,6 +1,7 @@
 import { createBatteryRing } from '../components/battery-ring.ts';
 import { createEnergyToday } from '../components/energy-today.ts';
 import { createGridStatus } from '../components/grid-status.ts';
+import { createOutputs } from '../components/outputs.ts';
 import { createPowerCards } from '../components/power-cards.ts';
 import type { UiDeps } from '../deps.ts';
 import { flowOf } from '../format.ts';
@@ -13,7 +14,8 @@ export function createHomePage(deps: UiDeps): Page {
   const status = createGridStatus();
   const today = createEnergyToday();
   const power = createPowerCards();
-  const el = h('div', { class: 'home' }, h('section', { class: 'hero' }, ring.el, status.el), today.el, power.el);
+  const outputs = createOutputs(deps);
+  const el = h('div', { class: 'home' }, h('section', { class: 'hero' }, ring.el, status.el), today.el, power.el, outputs.el);
   const nowSec = () => Math.floor(Date.now() / 1000);
 
   const render = (st: AppState) => {
@@ -23,6 +25,7 @@ export function createHomePage(deps: UiDeps): Page {
     status.update(view, nowSec());
     today.update(view?.today ?? null);
     power.update(snap);
+    outputs.update(st);
   };
   render(deps.store.get());
   const unsubscribe = deps.store.subscribe(render);

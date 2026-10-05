@@ -478,6 +478,100 @@
     color: var(--color-text);
     font-weight: 500;
   }
+  .outputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .tile {
+    min-height: 104px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+    color: var(--color-text);
+    transition:
+      border-color 240ms,
+      background-color 240ms,
+      box-shadow 300ms,
+      opacity 200ms,
+      transform 160ms var(--ease-out-soft);
+  }
+  .tile:active {
+    transform: scale(0.97);
+  }
+  .tile:disabled {
+    opacity: 0.45;
+  }
+  .tile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .tile-name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .tile-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #2a3033;
+    transition:
+      background-color 240ms,
+      box-shadow 300ms;
+  }
+  .tile-state {
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .tile-sub {
+    font-size: 12px;
+    color: var(--color-faint);
+  }
+  .tile[data-on='true'] {
+    border-color: rgb(52 209 122 / 0.45);
+    background:
+      linear-gradient(180deg, rgb(52 209 122 / 0.08), transparent 70%),
+      var(--color-surface);
+    box-shadow: 0 10px 30px -18px rgb(52 209 122 / 0.6);
+  }
+  .tile[data-on='true'] .tile-dot {
+    background: var(--color-accent);
+    box-shadow: 0 0 10px rgb(52 209 122 / 0.8);
+  }
+  .tile[data-on='true'] .tile-state {
+    color: var(--color-accent);
+  }
+  .tile[data-pending='true'] .tile-dot {
+    animation: pulse 900ms ease-in-out infinite;
+  }
+  .segmented {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 4px;
+    border-radius: 14px;
+    background: var(--color-surface);
+    border: 1px solid rgb(255 255 255 / 0.05);
+  }
+  .segmented button {
+    height: 38px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--color-muted);
+    transition:
+      background-color 200ms,
+      color 200ms;
+  }
+  .segmented button[aria-pressed='true'] {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
 }
 
 @keyframes fade-in {
@@ -488,6 +582,12 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
   }
 }
 
