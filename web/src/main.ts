@@ -1,3 +1,4 @@
 import './styles.css';
+import { boot } from './app.ts';
 
-document.getElementById('app')!.textContent = 'Fossibot';
+void boot(document.getElementById('app')!);
