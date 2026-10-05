@@ -194,7 +194,7 @@ function paintSlider(wrap: HTMLElement) {
 function renderDetails(t: StationTelemetry) {
   const rows: [string, string][] = [
     ['Напруга AC', t.acOutputVoltage !== null ? `${t.acOutputVoltage.toFixed(1)} V` : '—'],
-    ['Частота AC', t.acOutputFrequency !== null ? `${t.acOutputFrequency} Hz` : '—'],
+    ['Частота AC', t.acOutputFrequency !== null ? `${t.acOutputFrequency.toFixed(1)} Hz` : '—'],
     ['Напруга батареї', t.packVoltage !== null ? `${t.packVoltage.toFixed(1)} V` : '—'],
     ['Темп. батареї', t.batteryTempMax !== null ? `${t.batteryTempMax} °C` : '—'],
     ['Ліміти заряду', t.chargeLimit !== null ? `${t.dischargeLimit ?? 0}–${t.chargeLimit}%` : '—'],

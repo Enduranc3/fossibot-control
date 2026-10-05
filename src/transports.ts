@@ -203,7 +203,7 @@ export class DemoTransport implements Transport {
     [KEY.chargeLimit]: 100,
     [KEY.dischargeLimit]: 5,
     [KEY.acOutputVoltage]: 2300,
-    [KEY.acOutputFrequency]: 50,
+    [KEY.acOutputFrequency]: 500,
     [KEY.packVoltage]: 512,
     [KEY.batteryTempMax]: 27,
     [KEY.screenBrightness]: 80,

@@ -66,7 +66,7 @@ REGISTERS = [
     Reg(1, "soc", "u8"), Reg(2, "battery_temp_max", "i8"), Reg(3, "remaining_minutes", "u16"),
     Reg(8, "pack_voltage", "u16", 0.1), Reg(9, "battery_current", "i32", 0.001),
     Reg(12, "bms_fault", "u32"), Reg(19, "ac_input_w", "u16"), Reg(20, "ac_output_w", "u16"),
-    Reg(21, "ac_output_voltage", "u16", 0.1), Reg(22, "ac_output_frequency", "u16"),
+    Reg(21, "ac_output_voltage", "u16", 0.1), Reg(22, "ac_output_frequency", "u16", 0.1),
     Reg(23, "solar_input_w", "u16"), Reg(24, "inverter_temp", "i16"), Reg(26, "pcs_fault", "u32"),
     Reg(27, "pv_voltage", "u16", 0.1), Reg(30, "pv_fault", "u32"), Reg(34, "total_input_w", "u16"),
     Reg(35, "total_output_w", "u16"), Reg(36, "dc_output_w", "u16"), Reg(37, "usb_output_w", "u16", 0.1),

@@ -42,7 +42,7 @@ export const REGISTERS: readonly RegisterDef[] = [
   { key: 19, id: 'acInputW', type: 'u16', unit: 'W' },
   { key: 20, id: 'acOutputW', type: 'u16', unit: 'W' },
   { key: 21, id: 'acOutputVoltage', type: 'u16', scale: 0.1, unit: 'V' },
-  { key: 22, id: 'acOutputFrequency', type: 'u16', unit: 'Hz' },
+  { key: 22, id: 'acOutputFrequency', type: 'u16', scale: 0.1, unit: 'Hz' },
   { key: 23, id: 'solarInputW', type: 'u16', unit: 'W' },
   { key: 24, id: 'inverterTemp', type: 'i16', unit: '°C' },
   { key: 25, id: 'mosTemp', type: 'i16', unit: '°C' },
