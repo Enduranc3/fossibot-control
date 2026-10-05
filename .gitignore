@@ -2,9 +2,6 @@ node_modules/
 dist/
 .DS_Store
 *.log
-# CI build outputs
-build/
-spm-cache/
-Payload/
-*.ipa
-source.json
+*.db
+*.db-wal
+*.db-shm

@@ -1,8 +1,0 @@
-{
-  "name": "fossibot-net",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Native TCP server, WebSocket-with-headers and Keychain for the Fossibot app (iOS).",
-  "capacitor": { "ios": { "src": "ios" } },
-  "peerDependencies": { "@capacitor/core": ">=8.0.0" }
-}
