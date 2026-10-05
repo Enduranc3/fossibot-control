@@ -8,12 +8,12 @@ export type SettingDef =
 
 export const STANDBY_OPTIONS: Options = [
   [0, 'Ніколи'],
-  [1, '30 хв'],
-  [2, '1 год'],
-  [3, '4 год'],
-  [4, '8 год'],
-  [5, '12 год'],
-  [6, '24 год'],
+  [1, 'Через 30 хв'],
+  [2, 'Через 1 год'],
+  [3, 'Через 4 год'],
+  [4, 'Через 8 год'],
+  [5, 'Через 12 год'],
+  [6, 'Через 24 год'],
 ];
 
 export const STATION_SETTINGS: readonly SettingDef[] = [
@@ -24,9 +24,9 @@ export const STATION_SETTINGS: readonly SettingDef[] = [
   { register: 'dcChargeCurrent', label: 'Струм DC-заряджання', kind: 'slider', min: 1, max: 15, step: 1, unit: 'A', hint: 'Понад 8 A — лише для джерел, що їх витримують' },
   { register: 'screenBrightness', label: 'Яскравість екрана', kind: 'slider', min: 0, max: 100, step: 5, unit: '%' },
   { register: 'screenTimeout', label: 'Вимкнення екрана', kind: 'select', options: [[0, 'Ніколи'], [1, '1 хв'], [2, '5 хв'], [3, '10 хв'], [4, '30 хв']] },
-  { register: 'acStandby', label: 'AC без навантаження вимикати через', kind: 'select', options: STANDBY_OPTIONS },
-  { register: 'dcStandby', label: 'DC без навантаження вимикати через', kind: 'select', options: STANDBY_OPTIONS },
-  { register: 'usbStandby', label: 'USB без навантаження вимикати через', kind: 'select', options: STANDBY_OPTIONS },
+  { register: 'acStandby', label: 'Автовимкнення AC', hint: 'Якщо до виходу нічого не підключено', kind: 'select', options: STANDBY_OPTIONS },
+  { register: 'dcStandby', label: 'Автовимкнення DC', kind: 'select', options: STANDBY_OPTIONS },
+  { register: 'usbStandby', label: 'Автовимкнення USB', kind: 'select', options: STANDBY_OPTIONS },
   { register: 'keySoundOff', label: 'Звук кнопок', kind: 'switch', invert: true },
   { register: 'acRestoreOnPower', label: 'Вмикати AC після відновлення живлення', kind: 'switch' },
 ];

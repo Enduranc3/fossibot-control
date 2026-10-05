@@ -6,12 +6,12 @@ const R = 100;
 const C = 2 * Math.PI * R;
 
 export function createBatteryRing() {
-  const value = s('circle', { cx: 120, cy: 120, r: R, class: 'ring-value', 'stroke-dasharray': C.toFixed(2) });
+  const value = s('circle', { cx: 120, cy: 120, r: R, class: 'gauge-value', 'stroke-dasharray': C.toFixed(2) });
   value.style.strokeDashoffset = String(C);
-  const svg = s('svg', { viewBox: '0 0 240 240', class: 'ring-svg', 'aria-hidden': 'true' }, s('circle', { cx: 120, cy: 120, r: R, class: 'ring-track' }), value);
-  const pct = h('span', { class: 'ring-pct num', text: '—' });
-  const label = h('div', { class: 'ring-label', text: 'Немає даних' });
-  const el = h('div', { class: 'ring', attrs: { role: 'img', 'aria-label': 'Заряд батареї' } }, svg, h('div', { class: 'ring-center' }, h('div', { class: 'ring-num' }, pct, h('span', { class: 'ring-unit', text: '%' })), label));
+  const svg = s('svg', { viewBox: '0 0 240 240', class: 'gauge-svg', 'aria-hidden': 'true' }, s('circle', { cx: 120, cy: 120, r: R, class: 'gauge-track' }), value);
+  const pct = h('span', { class: 'gauge-pct num', text: '—' });
+  const label = h('div', { class: 'gauge-label', text: 'Немає даних' });
+  const el = h('div', { class: 'gauge', attrs: { role: 'img', 'aria-label': 'Заряд батареї' } }, svg, h('div', { class: 'gauge-center' }, h('div', { class: 'gauge-num' }, pct, h('span', { class: 'gauge-unit', text: '%' })), label));
   el.dataset.tone = 'none';
   let shown: number | null = null;
 

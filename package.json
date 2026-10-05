@@ -14,7 +14,8 @@
     "build:web": "vite build --config web/vite.config.ts && node scripts/build-sw.mjs",
     "build": "npm run build:web && npm run build:hub",
     "dev:web": "vite --config web/vite.config.ts",
-    "dev:hub": "FOSSIBOT_DATA_DIR=.dev-data FOSSIBOT_STATION_ALLOW=127.0.0. node hub/src/main.ts"
+    "dev:hub": "FOSSIBOT_DATA_DIR=.dev-data FOSSIBOT_STATION_ALLOW=127.0.0. node hub/src/main.ts",
+    "ui:check": "npm run build && node scripts/ui-check.mjs"
   },
   "dependencies": {
     "ws": "^8.22.0"
@@ -25,6 +26,7 @@
     "@types/ws": "^8.18.2",
     "esbuild": "^0.28.2",
     "happy-dom": "^20.14.5",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.3.2",

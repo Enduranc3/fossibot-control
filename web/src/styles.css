@@ -324,22 +324,22 @@
     justify-items: center;
     padding: 6px 0 2px;
   }
-  .ring {
+  .gauge {
     position: relative;
     width: min(70vw, 260px);
     aspect-ratio: 1;
   }
-  .ring-svg {
+  .gauge-svg {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
   }
-  .ring-track {
+  .gauge-track {
     fill: none;
     stroke: #1c2123;
     stroke-width: 14;
   }
-  .ring-value {
+  .gauge-value {
     fill: none;
     stroke: var(--color-faint);
     stroke-width: 14;
@@ -348,45 +348,45 @@
       stroke-dashoffset 900ms var(--ease-out-soft),
       stroke 500ms;
   }
-  .ring[data-tone='ok'] .ring-value {
+  .gauge[data-tone='ok'] .gauge-value {
     stroke: var(--color-accent);
   }
-  .ring[data-tone='warn'] .ring-value {
+  .gauge[data-tone='warn'] .gauge-value {
     stroke: var(--color-warn);
   }
-  .ring[data-tone='bad'] .ring-value {
+  .gauge[data-tone='bad'] .gauge-value {
     stroke: var(--color-bad);
   }
-  .ring-center {
+  .gauge-center {
     position: absolute;
     inset: 0;
     display: grid;
     place-content: center;
     text-align: center;
   }
-  .ring-num {
+  .gauge-num {
     display: flex;
     align-items: flex-start;
     justify-content: center;
   }
-  .ring-pct {
+  .gauge-pct {
     min-width: 2ch;
     font-size: 68px;
     font-weight: 600;
     line-height: 1;
   }
-  .ring-unit {
+  .gauge-unit {
     margin: 8px 0 0 2px;
     font-size: 22px;
     color: var(--color-muted);
   }
-  .ring-label {
+  .gauge-label {
     margin-top: 8px;
     font-size: 14px;
     color: var(--color-muted);
     transition: color 300ms;
   }
-  .ring[data-flow='charging'] .ring-label {
+  .gauge[data-flow='charging'] .gauge-label {
     color: var(--color-accent);
   }
   .status {
@@ -711,7 +711,14 @@
     font-size: 15px;
     color: var(--color-bad);
   }
+  .input-inline::-webkit-inner-spin-button,
+  .input-inline::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
   .input-inline {
+    -moz-appearance: textfield;
+    appearance: textfield;
     width: 84px;
     background: transparent;
     border: none;

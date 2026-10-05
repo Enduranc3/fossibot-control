@@ -30,14 +30,14 @@ function deps(): UiDeps {
   };
 }
 
-describe('battery ring', () => {
+describe('battery gauge', () => {
   it('shows the charge, tone and flow, and a dash without data', () => {
     const ring = createBatteryRing();
     ring.update(60, 'bypass');
     expect(ring.el.textContent).toContain('60');
     expect(ring.el.textContent).toContain('Від мережі');
     expect(ring.el.dataset.tone).toBe('ok');
-    const value = ring.el.querySelector('.ring-value') as SVGCircleElement;
+    const value = ring.el.querySelector('.gauge-value') as SVGCircleElement;
     expect(Number(value.style.strokeDashoffset)).toBeGreaterThan(0);
     ring.update(15, 'discharging');
     expect(ring.el.dataset.tone).toBe('bad');
