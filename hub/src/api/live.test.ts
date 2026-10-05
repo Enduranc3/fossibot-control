@@ -58,6 +58,7 @@ describe('LiveHub', () => {
     const statusOf = (headers: Record<string, string>) =>
       new Promise<number>((resolve) => {
         const ws = new WebSocket(url, { headers });
+        ws.on('error', () => {}); // a rejected handshake also emits 'error'; the status code is what we assert
         closers.push(() => ws.terminate());
         ws.on('unexpected-response', (_req, res) => resolve(res.statusCode ?? 0));
       });
