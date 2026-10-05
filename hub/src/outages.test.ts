@@ -42,4 +42,22 @@ describe('OutageTracker', () => {
     t.addEnergy(delta(10));
     expect(t.onEvent({ ts: T0, type: 'grid_restored', source: 'hub', data: {} })).toBeNull();
   });
+
+  it('keeps the outage in memory while the database is read-only and writes it later', () => {
+    const db = openDb(':memory:');
+    const t = new OutageTracker(db);
+    db.exec('PRAGMA query_only = 1');
+    expect(t.onEvent({ ts: T0, type: 'grid_lost', source: 'hub', data: { soc: 80 } })).toBeNull();
+    expect(t.ongoing()).toMatchObject({ startTs: T0, socStart: 80 });
+    t.addEnergy(delta(12));
+    const done = t.onEvent({ ts: T0 + 300, type: 'grid_restored', source: 'hub', data: { soc: 75 } });
+    expect(done).toMatchObject({ startTs: T0, endTs: T0 + 300, outWh: 12 });
+    expect(() => t.persist()).toThrow();
+    db.exec('PRAGMA query_only = 0');
+    t.persist();
+    expect(db.prepare('SELECT start_ts, end_ts, soc_start, soc_end, out_wh FROM outages').all()).toEqual([
+      { start_ts: T0, end_ts: T0 + 300, soc_start: 80, soc_end: 75, out_wh: 12 },
+    ]);
+  });
 });
+

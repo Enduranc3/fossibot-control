@@ -64,6 +64,25 @@ describe('Auth', () => {
     expect(await auth.login('long enough')).toBeTypeOf('string');
   });
 
+  it('counts parallel attempts: only 5 run scrypt, the rest are refused at once', async () => {
+    const auth = new Auth(openDb(':memory:'));
+    await auth.setup('long enough');
+    const results = await Promise.allSettled(Array.from({ length: 10 }, () => auth.login('bad password')));
+    expect(results.filter((r) => r.status === 'fulfilled' && r.value === null)).toHaveLength(5);
+    expect(results.filter((r) => r.status === 'rejected' && r.reason instanceof RateLimitError)).toHaveLength(5);
+    await expect(auth.login('long enough')).rejects.toBeInstanceOf(RateLimitError);
+  });
+
+  it('still verifies sessions when the database cannot be written', async () => {
+    const c = clock();
+    const db = openDb(':memory:');
+    const auth = new Auth(db, { now: c.now });
+    const token = await auth.setup('long enough');
+    c.advance(5 * 60_000); // last_seen is stale, so verify() wants to touch it
+    db.exec('PRAGMA query_only = 1');
+    expect(auth.verify(token)).not.toBeNull();
+  });
+
   it('expires sessions unused for a year', async () => {
     const c = clock();
     const auth = new Auth(openDb(':memory:'), { now: c.now });

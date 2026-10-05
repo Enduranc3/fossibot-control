@@ -107,4 +107,36 @@ describe('hub end-to-end', () => {
     expect(log[0]).toContain('disk full');
     expect(runSafely('flush', () => {}, (m) => log.push(m))).toBe(true);
   });
+
+  it('keeps live data, commands and outage tracking working while the database is read-only', async () => {
+    const { hub, sim, get, post, cookie } = await boot();
+    const nowTo = () => Math.floor(Date.now() / 1000) + 10;
+    await poll(() => get<StateView>('/api/state'), (v) => v.link === 'up' && v.grid.present === true);
+
+    hub.ctx.db.exec('PRAGMA query_only = 1');
+    sim.setGrid(false);
+    const during = await poll(() => get<StateView>('/api/state'), (v) => v.outage !== null);
+    expect(during.outage).not.toBeNull();
+    expect((await post('/api/command', { register: 'led', value: 1 })).status).toBe(200);
+    const ws = new WebSocket(`ws://127.0.0.1:${hub.httpPort}/api/live`, { headers: { cookie } });
+    cleanup.push(() => ws.terminate());
+    let hello = false;
+    ws.on('message', (d) => (hello ||= JSON.parse(String(d)).type === 'hello'));
+    await until(() => hello, 5000);
+
+    hub.ctx.db.exec('PRAGMA query_only = 0');
+    sim.setGrid(true);
+    const outages = await poll(
+      () => get<Outage[]>(`/api/outages?from=0&to=${nowTo()}`),
+      (v) => v.length === 1 && v[0].endTs !== null,
+    );
+    expect(outages).toHaveLength(1);
+    expect(outages[0].endTs).not.toBeNull();
+    const events = await poll(
+      () => get<{ events: HubEvent[] }>('/api/events?limit=50'),
+      (v) => v.events.some((e) => e.type === 'grid_lost'),
+    );
+    expect(events.events.map((e) => e.type)).toContain('grid_lost');
+  });
 });
+

@@ -5,7 +5,7 @@ import { Auth } from '../auth.ts';
 import { openDb } from '../db.ts';
 import { createHttpServer } from './http.ts';
 import { LiveHub, type LiveMessage } from './live.ts';
-import type { AddressInfo } from 'node:net';
+import net, { type AddressInfo } from 'node:net';
 
 const closers: (() => unknown)[] = [];
 afterEach(async () => {
@@ -65,4 +65,44 @@ describe('LiveHub', () => {
     expect(await statusOf({})).toBe(401);
     expect(await statusOf({ cookie: `fb_session=${token}`, origin: 'https://evil.example' })).toBe(403);
   });
+
+  it('survives malformed upgrade requests without a session', async () => {
+    const { token, url, host } = await setup();
+    const [h, port] = host.split(':');
+    const raw = (request: string) =>
+      new Promise<string>((resolve) => {
+        const c = net.createConnection({ host: h, port: Number(port) }, () => c.write(request));
+        let out = '';
+        c.on('data', (d) => (out += d));
+        c.on('close', () => resolve(out));
+        c.on('error', () => resolve(out));
+        closers.push(() => c.destroy());
+      });
+    const upgrade = 'Upgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n';
+    expect(await raw(`GET /api/live HTTP/1.1\r\nHost: ${host}\r\nCookie: fb_session=%E0%A4%A\r\n${upgrade}\r\n`)).toMatch(/^HTTP\/1\.1 40[01]/);
+    expect(await raw(`GET //[ HTTP/1.1\r\nHost: ${host}\r\n${upgrade}\r\n`)).toMatch(/^HTTP\/1\.1 40\d/);
+    const c = connect(url, { cookie: `fb_session=${token}` });
+    await until(() => c.messages.length === 1);
+  });
+
+  it('survives a protocol-violating frame from an authenticated client', async () => {
+    const { token, url, host } = await setup();
+    const [h, port] = host.split(':');
+    const c = net.createConnection({ host: h, port: Number(port) });
+    closers.push(() => c.destroy());
+    c.on('error', () => {});
+    let reply = '';
+    c.on('data', (d) => (reply += d));
+    await new Promise((r) => c.once('connect', r));
+    c.write(
+      `GET /api/live HTTP/1.1\r\nHost: ${host}\r\nCookie: fb_session=${token}\r\nUpgrade: websocket\r\n` +
+        'Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n',
+    );
+    await until(() => reply.startsWith('HTTP/1.1 101'));
+    c.write(Buffer.from([0x81, 0x01, 0x41])); // unmasked client frame: a protocol error
+    await new Promise((r) => setTimeout(r, 200));
+    const ok = connect(url, { cookie: `fb_session=${token}` });
+    await until(() => ok.messages.length === 1);
+  });
 });
+

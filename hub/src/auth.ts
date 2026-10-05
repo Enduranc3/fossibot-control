@@ -61,6 +61,7 @@ export class Auth {
   private readonly now: () => number;
   private failures: number[] = [];
   private lockedUntil = 0;
+  private loginChain: Promise<unknown> = Promise.resolve();
 
   constructor(db: Db, opts: { now?: () => number } = {}) {
     this.db = db;
@@ -78,7 +79,18 @@ export class Auth {
     return this.createSession(userAgent);
   }
 
-  async login(password: string, userAgent = ''): Promise<string | null> {
+  /**
+   * Logins run one at a time so that parallel requests are counted against the limit before
+   * the next scrypt check starts (otherwise all of them would slip past the lock).
+   */
+  login(password: string, userAgent = ''): Promise<string | null> {
+    const run = () => this.loginOnce(password, userAgent);
+    const result = this.loginChain.then(run, run);
+    this.loginChain = result.catch(() => undefined);
+    return result;
+  }
+
+  private async loginOnce(password: string, userAgent: string): Promise<string | null> {
     const nowMs = this.now();
     if (nowMs < this.lockedUntil) throw new RateLimitError(Math.ceil((this.lockedUntil - nowMs) / 1000));
     const stored = kvGet<string>(this.db, 'password_hash');
@@ -105,8 +117,12 @@ export class Auth {
       return null;
     }
     if (nowSec - row.last_seen_ts > 60) {
-      this.db.prepare('UPDATE sessions SET last_seen_ts = ? WHERE id = ?').run(nowSec, row.id);
-      row.last_seen_ts = nowSec;
+      try {
+        this.db.prepare('UPDATE sessions SET last_seen_ts = ? WHERE id = ?').run(nowSec, row.id);
+        row.last_seen_ts = nowSec;
+      } catch {
+        // Best effort: a full or locked database must not lock the owner out of a working hub.
+      }
     }
     return toSession(row);
   }

@@ -74,17 +74,24 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
   let latest: Snapshot | null = null;
   let live: LiveHub | null = null;
 
+  // Events that could not be stored (full or locked database) are retried on the next flush.
+  const pendingEvents: HubEvent[] = [];
   const emit = (e: HubEvent) => {
-    runSafely(
+    // The outage tracker keeps its state in memory, so it runs even when the database is failing.
+    const finished = outages.onEvent(e);
+    if (finished) {
+      runSafely('capacity', () => prefs.update({ capacityWh: learnCapacity(prefs.get().capacityWh, finished) }), log);
+    }
+    let id: number | undefined;
+    const stored = runSafely(
       'event',
       () => {
-        const id = insertEvent(db, e);
-        const finished = outages.onEvent(e);
-        if (finished) prefs.update({ capacityWh: learnCapacity(prefs.get().capacityWh, finished) });
-        live?.broadcast({ type: 'event', event: { ...e, id } });
+        id = insertEvent(db, e);
       },
       log,
     );
+    if (!stored) pendingEvents.push(e);
+    live?.broadcast({ type: 'event', event: { ...e, id } });
   };
 
   const detector = new EventDetector({
@@ -147,6 +154,10 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
       () => {
         recorder.flush();
         outages.persist();
+        while (pendingEvents.length) {
+          insertEvent(db, pendingEvents[0]);
+          pendingEvents.shift();
+        }
       },
       log,
     );
