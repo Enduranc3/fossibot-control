@@ -60,6 +60,111 @@
   .fade-in {
     animation: fade-in 220ms var(--ease-out-soft) both;
   }
+  .toasts {
+    position: fixed;
+    inset: max(env(safe-area-inset-top), 12px) 0 auto 0;
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    pointer-events: none;
+    z-index: 60;
+  }
+  .toast {
+    max-width: calc(100% - 32px);
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: rgb(28 33 35 / 0.92);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition:
+      opacity 220ms var(--ease-out-soft),
+      transform 220ms var(--ease-out-soft);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: none;
+  }
+  .toast-error {
+    color: #ffb3b3;
+    border-color: rgb(255 92 92 / 0.25);
+  }
+  .sheet-root {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+  }
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.55);
+    opacity: 0;
+    transition: opacity 240ms var(--ease-out-soft);
+  }
+  .sheet {
+    position: absolute;
+    inset: auto 0 0 0;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--color-surface);
+    border-radius: 26px 26px 0 0;
+    padding: 10px 20px max(env(safe-area-inset-bottom), 20px);
+    transform: translateY(100%);
+    transition: transform 280ms var(--ease-out-soft);
+  }
+  .sheet-root.open .sheet-backdrop {
+    opacity: 1;
+  }
+  .sheet-root.open .sheet {
+    transform: none;
+  }
+  .sheet-grabber {
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--color-line);
+    margin: 0 auto 14px;
+  }
+  .sheet-title {
+    font-size: 19px;
+    font-weight: 600;
+  }
+  .sheet-body {
+    margin-top: 6px;
+    color: var(--color-muted);
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .sheet-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .sheet-btn {
+    height: 50px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: transform 160ms var(--ease-out-soft);
+  }
+  .sheet-btn:active {
+    transform: scale(0.98);
+  }
+  .sheet-btn-primary {
+    background: var(--color-accent);
+    color: #04140a;
+  }
+  .sheet-btn-danger {
+    background: rgb(255 92 92 / 0.14);
+    color: var(--color-bad);
+  }
+  .sheet-btn-ghost {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
 }
 
 @keyframes fade-in {
