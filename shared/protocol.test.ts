@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   ACK_FRAME,
+  ID_BY_KEY,
   FrameAssembler,
   KEY,
+  buildReport,
   buildWriteCommand,
   bytesToHex,
   crc16modbus,
   decodeRegisters,
   hexToBytes,
   parseFrame,
+  verifyCrc,
 } from './protocol.ts';
 import { REAL_F1800 } from './fixtures.ts';
 
@@ -115,5 +118,38 @@ describe('FrameAssembler', () => {
 
   it('accepts the ACK frame as a well-formed frame', () => {
     expect(new FrameAssembler().push(ACK_FRAME)).toHaveLength(1);
+  });
+});
+describe('verifyCrc', () => {
+  it('accepts the real station frame and our own commands', () => {
+    expect(verifyCrc(hexToBytes(REAL_F1800))).toBe(true);
+    expect(verifyCrc(buildWriteCommand(KEY.led, 1))).toBe(true);
+  });
+
+  it('rejects a corrupted frame and too-short input', () => {
+    const raw = hexToBytes(REAL_F1800);
+    raw[10] ^= 0xff;
+    expect(verifyCrc(raw)).toBe(false);
+    expect(verifyCrc(new Uint8Array(4))).toBe(false);
+  });
+});
+
+describe('buildReport', () => {
+  it('round-trips through parseFrame/decodeRegisters with a valid CRC', () => {
+    const raw = buildReport({ [KEY.soc]: 57, [KEY.acOn]: 1, [KEY.acOutputVoltage]: 2301, [KEY.inverterTemp]: -5 });
+    expect(verifyCrc(raw)).toBe(true);
+    expect(raw[0] | (raw[1] << 8)).toBe(raw.length);
+    const regs = decodeRegisters(parseFrame(raw)!);
+    expect(regs.soc).toBe(57);
+    expect(regs.acOn).toBe(1);
+    expect(regs.acOutputVoltage).toBe(230.1);
+    expect(regs.inverterTemp).toBe(-5);
+  });
+});
+
+describe('ID_BY_KEY', () => {
+  it('is the inverse of KEY', () => {
+    expect(ID_BY_KEY[39]).toBe('acOn');
+    for (const [id, key] of Object.entries(KEY)) expect(ID_BY_KEY[key]).toBe(id);
   });
 });

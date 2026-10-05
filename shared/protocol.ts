@@ -80,6 +80,7 @@ export const REGISTERS: readonly RegisterDef[] = [
 
 const BY_KEY = new Map(REGISTERS.map((r) => [r.key, r]));
 export const KEY: Record<string, number> = Object.fromEntries(REGISTERS.map((r) => [r.id, r.key]));
+export const ID_BY_KEY: Record<number, string> = Object.fromEntries(REGISTERS.map((r) => [r.key, r.id]));
 
 // ---------------------------------------------------------------- bytes / hex
 
@@ -111,6 +112,31 @@ export function buildWriteCommand(key: number, value: number): Uint8Array {
   const record = [key & 0xff, (key >> 8) & 0xff, v & 0xff, (v >> 8) & 0xff, 0, 0];
   const crc = crc16modbus(record);
   return Uint8Array.from([0x0e, 0x00, 0x0c, 0x00, 0x08, 0x00, ...record, crc >> 8, crc & 0xff]);
+}
+
+/** True when the last two bytes are CRC-16/MODBUS over the records (bytes 6..len-2), high byte first. */
+export function verifyCrc(raw: Uint8Array): boolean {
+  if (raw.length < 8) return false;
+  const crc = crc16modbus(raw.subarray(6, raw.length - 2));
+  return raw[raw.length - 2] === crc >> 8 && raw[raw.length - 1] === (crc & 0xff);
+}
+
+/** Builds a station report (TYPE 0x0B) from raw register values; used by the simulator and tests. */
+export function buildReport(values: Record<number, number>): Uint8Array {
+  const keys = Object.keys(values)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const len = 6 + keys.length * 6 + 2;
+  const out = new Uint8Array(len);
+  out.set([len & 0xff, len >> 8, FrameType.Report, 0, (len - 6) & 0xff, (len - 6) >> 8]);
+  keys.forEach((k, i) => {
+    const v = values[k] >>> 0;
+    out.set([k & 0xff, k >> 8, v & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff], 6 + i * 6);
+  });
+  const crc = crc16modbus(out.subarray(6, len - 2));
+  out[len - 2] = crc >> 8;
+  out[len - 1] = crc & 0xff;
+  return out;
 }
 
 // ---------------------------------------------------------------- parsing
