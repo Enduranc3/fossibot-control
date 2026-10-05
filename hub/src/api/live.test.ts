@@ -104,5 +104,17 @@ describe('LiveHub', () => {
     const ok = connect(url, { cookie: `fb_session=${token}` });
     await until(() => ok.messages.length === 1);
   });
+
+  it('sends an application-level ping so idle clients can tell the hub is alive', async () => {
+    const auth = new Auth(openDb(':memory:'));
+    const token = await auth.setup('long enough');
+    const server = createHttpServer({ routes: [], auth, allowedOrigins: [] });
+    const live = new LiveHub(server, { auth, allowedOrigins: [], hello: () => STATE, heartbeatMs: 50 });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', () => r()));
+    closers.push(() => live.close(), () => new Promise<void>((r) => server.close(() => r())));
+    const { port } = server.address() as AddressInfo;
+    const c = connect(`ws://127.0.0.1:${port}/api/live`, { cookie: `fb_session=${token}` });
+    await until(() => c.messages.some((m) => m.type === 'ping'));
+  });
 });
 

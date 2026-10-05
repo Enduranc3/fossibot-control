@@ -19,7 +19,7 @@ describe('applyLive', () => {
     applyLive(store, { type: 'telemetry', snapshot: makeSnapshot(1) }, 5);
     expect(store.get().view).toBeNull(); // nothing to patch before hello
     applyLive(store, { type: 'hello', state: VIEW }, 10);
-    expect(store.get()).toMatchObject({ view: VIEW, lastDataAt: 10, hub: 'online' });
+    expect(store.get()).toMatchObject({ view: VIEW, hub: 'online' });
     const snap = makeSnapshot(2);
     applyLive(store, { type: 'telemetry', snapshot: snap }, 20);
     expect(store.get().view).toMatchObject({ snapshot: snap, link: 'up' });
@@ -27,7 +27,23 @@ describe('applyLive', () => {
     expect(store.get().view?.grid).toEqual({ present: false, sinceSec: 99 });
     applyLive(store, { type: 'link', state: 'down' }, 40);
     expect(store.get().view?.link).toBe('down');
-    expect(store.get().lastDataAt).toBe(40);
+    expect(store.get().lastDataAt).toBe(20);
+  });
+});
+
+describe('lastDataAt', () => {
+  it('moves only with station data, not with hub pings, link or grid notices', () => {
+    const store = createAppStore();
+    applyLive(store, { type: 'hello', state: VIEW }, 10); // no snapshot yet
+    expect(store.get().lastDataAt).toBeNull();
+    applyLive(store, { type: 'telemetry', snapshot: makeSnapshot(1) }, 20);
+    expect(store.get().lastDataAt).toBe(20);
+    applyLive(store, { type: 'ping' }, 30);
+    applyLive(store, { type: 'link', state: 'down' }, 40);
+    applyLive(store, { type: 'grid', present: false, sinceSec: 1 }, 50);
+    expect(store.get().lastDataAt).toBe(20);
+    applyLive(store, { type: 'hello', state: { ...VIEW, snapshot: makeSnapshot(2) } }, 60);
+    expect(store.get().lastDataAt).toBe(60);
   });
 });
 

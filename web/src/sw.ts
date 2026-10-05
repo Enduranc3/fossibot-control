@@ -12,6 +12,32 @@ export function strategyFor(url: URL, origin: string): Strategy {
   return 'network-first';
 }
 
+export interface SwCache {
+  match(key: Request | string): Promise<Response | undefined>;
+  put(key: Request | string, res: Response): Promise<void>;
+}
+
+/**
+ * Network first, cached shell as fallback — also when the hub is down behind Funnel (5xx),
+ * not only when the network itself fails.
+ */
+export async function networkFirst(req: Request, fetchFn: (r: Request) => Promise<Response>, cache: SwCache): Promise<Response> {
+  const key = req.mode === 'navigate' ? '/' : req;
+  const cached = async () => (await cache.match(req)) ?? (await cache.match('/'));
+  let res: Response;
+  try {
+    res = await fetchFn(req);
+  } catch {
+    return (await cached()) ?? Response.error();
+  }
+  if (res.ok) {
+    await cache.put(key, res.clone());
+    return res;
+  }
+  if (res.status >= 500) return (await cached()) ?? res;
+  return res;
+}
+
 interface ExtendableEvent {
   waitUntil(p: Promise<unknown>): void;
 }
@@ -31,6 +57,10 @@ const isWorker = typeof (globalThis as { ServiceWorkerGlobalScope?: unknown }).S
 
 if (isWorker) {
   const sw = globalThis as unknown as Scope;
+  const swCache: SwCache = {
+    match: (k) => caches.match(k),
+    put: (k, res) => caches.open(CACHE_NAME).then((c) => c.put(k, res)),
+  };
 
   sw.addEventListener('install', (e) => {
     e.waitUntil(
@@ -55,29 +85,19 @@ if (isWorker) {
     if (req.method !== 'GET') return;
     const strategy = strategyFor(new URL(req.url), sw.location.origin);
     if (strategy === 'network-only') return;
-    const store = (key: Request | string, res: Response) => {
-      if (res.ok) void caches.open(CACHE_NAME).then((c) => c.put(key, res));
-    };
     if (strategy === 'cache-first') {
       e.respondWith(
         caches.match(req).then(
           (hit) =>
             hit ??
             fetch(req).then((res) => {
-              store(req, res.clone());
+              if (res.ok) void swCache.put(req, res.clone());
               return res;
             }),
         ),
       );
       return;
     }
-    e.respondWith(
-      fetch(req)
-        .then((res) => {
-          store(req.mode === 'navigate' ? '/' : req, res.clone());
-          return res;
-        })
-        .catch(async () => (await caches.match(req)) ?? (await caches.match('/')) ?? Response.error()),
-    );
+    e.respondWith(networkFirst(req, (r) => fetch(r), swCache));
   });
 }

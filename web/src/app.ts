@@ -6,7 +6,7 @@ import { createAuthPage } from './pages/auth.ts';
 import { createHomePage } from './pages/home.ts';
 import { createSettingsPage } from './pages/settings.ts';
 import { Router } from './router.ts';
-import { createAppStore, type AppState, type Store } from './store.ts';
+import { browserStorage, clearPersisted, createAppStore, type AppState, type Store } from './store.ts';
 import { applyLive, checkSessionAfterReject, hubStatusFor, shouldRefreshOnEvent } from './sync.ts';
 import { h, icon, ICONS, setText } from './ui/dom.ts';
 import { confirmSheet } from './ui/sheet.ts';
@@ -71,14 +71,17 @@ export function mountShell(root: HTMLElement, store: Store<AppState>) {
 
 /** Mounts the logged-in app; returns a function that tears it down. */
 export function startApp(root: HTMLElement): () => void {
-  const store = createAppStore();
+  const store = createAppStore(browserStorage());
   const deps: UiDeps = {
     store,
     api,
     run: (register, value) => api.command(register, value),
     confirm: confirmSheet,
     notify: (message, tone = 'info') => void toast(message, tone),
-    onLoggedOut: () => location.reload(),
+    onLoggedOut: () => {
+      clearPersisted();
+      location.reload();
+    },
   };
   const shell = mountShell(root, store);
   const router = new Router(shell.outlet, { '/': () => createHomePage(deps), '/settings': () => createSettingsPage(deps) }, (p) =>

@@ -13,7 +13,9 @@ export type LiveMessage =
   | { type: 'telemetry'; snapshot: Snapshot }
   | { type: 'link'; state: LinkState }
   | { type: 'grid'; present: boolean | null; sinceSec: number | null }
-  | { type: 'event'; event: HubEvent };
+  | { type: 'event'; event: HubEvent }
+  /** Sent every few seconds so clients can tell a quiet hub (station down) from a dead link. */
+  | { type: 'ping' };
 
 const reject = (socket: Duplex, status: number, text: string) => {
   socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
@@ -26,8 +28,9 @@ export class LiveHub {
   private readonly wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
   private readonly alive = new WeakMap<WebSocket, boolean>();
   private readonly pinger: ReturnType<typeof setInterval>;
+  private readonly heartbeat: ReturnType<typeof setInterval>;
 
-  constructor(server: http.Server, opts: { auth: Auth; allowedOrigins: string[]; hello(): StateView }) {
+  constructor(server: http.Server, opts: { auth: Auth; allowedOrigins: string[]; hello(): StateView; heartbeatMs?: number }) {
     server.on('upgrade', (req, socket, head) => {
       socket.on('error', () => socket.destroy());
       try {
@@ -61,6 +64,8 @@ export class LiveHub {
       }
     }, 30_000);
     this.pinger.unref();
+    this.heartbeat = setInterval(() => this.broadcast({ type: 'ping' }), opts.heartbeatMs ?? 5000);
+    this.heartbeat.unref();
   }
 
   broadcast(msg: LiveMessage): void {
@@ -74,6 +79,7 @@ export class LiveHub {
 
   close(): void {
     clearInterval(this.pinger);
+    clearInterval(this.heartbeat);
     for (const ws of this.wss.clients) ws.terminate();
     this.wss.close();
   }

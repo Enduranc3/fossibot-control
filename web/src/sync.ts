@@ -5,19 +5,20 @@ export function applyLive(store: Store<AppState>, m: LiveMessage, now = Date.now
   const view = store.get().view;
   switch (m.type) {
     case 'hello':
-      store.set({ view: m.state, lastDataAt: now, hub: 'online' });
+      // lastDataAt marks the last station data, so it moves only when the hello carries a snapshot.
+      store.set({ view: m.state, hub: 'online', lastDataAt: m.state.snapshot ? now : store.get().lastDataAt });
       return;
     case 'telemetry':
       if (view) store.set({ view: { ...view, snapshot: m.snapshot, link: 'up' }, lastDataAt: now });
       return;
     case 'link':
-      if (view) store.set({ view: { ...view, link: m.state }, lastDataAt: now });
+      if (view) store.set({ view: { ...view, link: m.state } });
       return;
     case 'grid':
-      if (view) store.set({ view: { ...view, grid: { present: m.present, sinceSec: m.sinceSec } }, lastDataAt: now });
+      if (view) store.set({ view: { ...view, grid: { present: m.present, sinceSec: m.sinceSec } } });
       return;
     case 'event':
-      store.set({ lastDataAt: now });
+    case 'ping':
       return;
   }
 }

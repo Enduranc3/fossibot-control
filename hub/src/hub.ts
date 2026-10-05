@@ -31,6 +31,8 @@ export interface HubConfig {
   confirmMs?: number;
   flushIntervalMs?: number;
   gridRule?: GridRule;
+  /** Interval of the app-level ping on /api/live (default 5 s). */
+  liveHeartbeatMs?: number;
   /** Built web app to serve (dist/web); omitted = API only. */
   webDir?: string;
   log?: (m: string) => void;
@@ -146,7 +148,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     staticDir: cfg.webDir,
     log,
   });
-  const liveHub = new LiveHub(server, { auth, allowedOrigins: cfg.allowedOrigins, hello: state });
+  const liveHub = new LiveHub(server, { auth, allowedOrigins: cfg.allowedOrigins, hello: state, heartbeatMs: cfg.liveHeartbeatMs });
   live = liveHub;
 
   await link.start();
