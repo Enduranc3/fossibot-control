@@ -70,6 +70,15 @@ describe('StationLink', () => {
     expect(states).toEqual(['up', 'down']);
   });
 
+  it('keeps the default link timeout when options pass undefined explicitly', async () => {
+    const link = await startLink({ linkTimeoutMs: undefined, sendAck: undefined, now: undefined });
+    const states: LinkState[] = [];
+    link.on('state', (st) => states.push(st));
+    const s = await sim(link, 50);
+    await until(() => s.acks >= 5);
+    expect(states).toEqual(['up']);
+  });
+
   it('rejects connections outside the allowed prefix', async () => {
     const link = await startLink({ allowedPrefix: '192.168.8.' });
     const c = net.createConnection({ port: link.port, host: '127.0.0.1' });

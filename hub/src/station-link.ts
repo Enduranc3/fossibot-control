@@ -45,7 +45,14 @@ export class StationLink extends EventEmitter<LinkEvents> {
 
   constructor(opts: StationLinkOptions) {
     super();
-    this.opts = { host: '0.0.0.0', linkTimeoutMs: 10_000, sendAck: true, now: Date.now, ...opts };
+    // Explicit `undefined` from callers (e.g. an unset config value) must not override the defaults.
+    this.opts = {
+      ...opts,
+      host: opts.host ?? '0.0.0.0',
+      linkTimeoutMs: opts.linkTimeoutMs ?? 10_000,
+      sendAck: opts.sendAck ?? true,
+      now: opts.now ?? Date.now,
+    };
   }
 
   get port(): number {
