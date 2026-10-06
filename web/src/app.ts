@@ -5,6 +5,7 @@ import { LiveClient, liveUrl } from './live.ts';
 import { createAuthPage } from './pages/auth.ts';
 import { createChartsPage } from './pages/charts.ts';
 import { createHomePage } from './pages/home.ts';
+import { createJournalPage } from './pages/journal.ts';
 import { createOutagesPage } from './pages/outages.ts';
 import { createSettingsPage } from './pages/settings.ts';
 import { Router } from './router.ts';
@@ -18,6 +19,7 @@ export const TABS = [
   { path: '/', label: 'Головна', icon: ICONS.home },
   { path: '/charts', label: 'Графіки', icon: ICONS.chart },
   { path: '/outages', label: 'Відключення', icon: ICONS.bolt },
+  { path: '/journal', label: 'Журнал', icon: ICONS.list },
   { path: '/settings', label: 'Налаштування', icon: ICONS.sliders },
 ] as const;
 
@@ -94,6 +96,7 @@ export function startApp(root: HTMLElement): () => void {
       '/': () => createHomePage(deps),
       '/charts': () => createChartsPage(deps),
       '/outages': () => createOutagesPage(deps),
+      '/journal': () => createJournalPage(deps),
       '/settings': () => createSettingsPage(deps),
     },
     (p) => shell.setActive(p),

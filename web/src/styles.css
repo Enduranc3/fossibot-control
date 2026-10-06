@@ -1205,6 +1205,81 @@
     color: var(--color-muted);
     text-align: center;
   }
+  .chips {
+    display: flex;
+    gap: 6px;
+    margin: 6px -16px 0;
+    padding: 0 16px 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    flex: none;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 17px;
+    background: var(--color-surface);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    font-size: 14px;
+    color: var(--color-muted);
+    transition:
+      background-color 200ms,
+      color 200ms;
+  }
+  .chip[aria-pressed='true'] {
+    background: var(--color-surface-2);
+    border-color: rgb(255 255 255 / 0.14);
+    color: var(--color-text);
+  }
+  .journal-list {
+    transition: opacity 200ms;
+  }
+  .journal[data-loading='true'] .journal-list {
+    opacity: 0.5;
+  }
+  .event-row {
+    display: grid;
+    grid-template-columns: 42px 8px 1fr;
+    align-items: start;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .event-row + .event-row {
+    border-top: 1px solid rgb(255 255 255 / 0.05);
+  }
+  .event-time {
+    padding-top: 1px;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .event-row .dot {
+    margin-top: 6px;
+  }
+  .event-title {
+    font-size: 15px;
+  }
+  .event-detail {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .more-btn {
+    display: block;
+    width: 100%;
+    height: 44px;
+    margin-top: 12px;
+    border-radius: 14px;
+    background: var(--color-surface);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    font-size: 15px;
+    color: var(--color-text);
+  }
+  .more-btn:disabled {
+    opacity: 0.5;
+  }
 }
 
 @keyframes fade-in {
