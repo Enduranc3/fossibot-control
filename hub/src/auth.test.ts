@@ -91,3 +91,16 @@ describe('Auth', () => {
     expect(auth.verify(token)).toBeNull();
   });
 });
+
+describe('resetPassword', () => {
+  it('replaces the password and ends every session', async () => {
+    const db = openDb(':memory:');
+    const auth = new Auth(db);
+    const token = await auth.setup('first password');
+    await auth.resetPassword('second password');
+    expect(auth.verify(token)).toBeNull();
+    expect(await auth.login('first password')).toBeNull();
+    expect(await auth.login('second password')).not.toBeNull();
+    await expect(auth.resetPassword('short')).rejects.toThrow('password_too_short');
+  });
+});

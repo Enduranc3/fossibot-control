@@ -78,6 +78,13 @@ export class Auth {
     kvSet(this.db, 'password_hash', await hashPassword(password));
     return this.createSession(userAgent);
   }
+  /** Sets a new password (first set-up or a forgotten one) and ends every session. */
+  async resetPassword(password: string): Promise<void> {
+    if (password.length < MIN_PASSWORD) throw new Error('password_too_short');
+    kvSet(this.db, 'password_hash', await hashPassword(password));
+    this.db.prepare('DELETE FROM sessions').run();
+  }
+
 
   /**
    * Logins run one at a time so that parallel requests are counted against the limit before
