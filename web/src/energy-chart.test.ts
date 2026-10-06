@@ -56,6 +56,23 @@ describe('energy chart', () => {
     chart.destroy();
   });
 
+  it('groups days into wider columns when a long custom range would make them overlap', () => {
+    const rows = Array.from({ length: 92 }, (_, i) => ({ ...ROWS[0], ts: day(i), gridInWh: 1000, solarInWh: 0, outWh: 500 }));
+    const chart = mount(rows);
+    expect(chart.el.querySelectorAll('.chart-slot')).toHaveLength(31); // 3 days per column
+    const spans = [...chart.el.querySelectorAll('.chart-bar')]
+      .map((b) => (b.getAttribute('d') ?? '').match(/[\d.]+/g)?.map(Number) ?? [])
+      .map((n) => [n[0], n[8]] as const)
+      .sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < spans.length; i++) expect(spans[i][0] - spans[i - 1][1]).toBeGreaterThanOrEqual(1.9);
+    expect(spans.every(([a, b]) => b - a >= 2)).toBe(true);
+    const svg = chart.el.querySelector('svg') as SVGSVGElement;
+    svg.dispatchEvent(new PointerEvent('pointerdown', { clientX: MARGIN.left + 2, pointerType: 'touch', bubbles: true }));
+    const tip = chart.el.querySelector('.chart-tip') as HTMLElement;
+    expect(tip.querySelector('.tip-time')?.textContent).toBe('7 вересня – 9 вересня');
+    expect(tip.textContent).toContain('3.00 кВт·годОтримано');
+  });
+
   it('renders no columns and no NaN without data', () => {
     const chart = mount([]);
     expect(chart.el.querySelectorAll('.chart-bar')).toHaveLength(0);

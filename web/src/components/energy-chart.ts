@@ -25,6 +25,39 @@ export function bucketLabel(ts: number, bucket: EnergyBucket): string {
   return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** Narrowest column pair that keeps two ≥ 2 px columns, a 2 px gap between them and 2 px to the next. */
+const MIN_SLOT_PX = 8;
+
+interface Column {
+  row: EnergyRow;
+  /** Start of the last bucket folded into this column (equals row.ts for a single bucket). */
+  lastTs: number;
+}
+
+/** Folds consecutive buckets into columns so no more than maxColumns are drawn; Wh are summed. */
+export function toColumns(rows: readonly EnergyRow[], maxColumns: number): Column[] {
+  const k = Math.max(1, Math.ceil(rows.length / Math.max(1, maxColumns)));
+  const out: Column[] = [];
+  for (let i = 0; i < rows.length; i += k) {
+    const part = rows.slice(i, i + k);
+    const sum = (f: (r: EnergyRow) => number) => part.reduce((a, r) => a + f(r), 0);
+    out.push({
+      row: {
+        ts: part[0].ts,
+        label: part[0].label,
+        gridInWh: sum((r) => r.gridInWh),
+        solarInWh: sum((r) => r.solarInWh),
+        outWh: sum((r) => r.outWh),
+        acOutWh: sum((r) => r.acOutWh),
+        dcOutWh: sum((r) => r.dcOutWh),
+        usbOutWh: sum((r) => r.usbOutWh),
+      },
+      lastTs: part[part.length - 1].ts,
+    });
+  }
+  return out;
+}
+
 function axisLabel(ts: number, bucket: EnergyBucket): string {
   if (bucket === 'hour') return fmtClock(ts);
   if (bucket === 'day') return String(new Date(ts * 1000).getDate());
@@ -42,6 +75,7 @@ export function createEnergyChart(o: { height?: number } = {}) {
   let slotW = 1;
   let active = -1;
   let slots: SVGGElement[] = [];
+  let columns: Column[] = [];
 
   function hide() {
     active = -1;
@@ -51,13 +85,14 @@ export function createEnergyChart(o: { height?: number } = {}) {
 
   function show(i: number) {
     const d = data;
-    if (!d || i < 0 || i >= d.rows.length) return hide();
+    if (!d || i < 0 || i >= columns.length) return hide();
     active = i;
     slots.forEach((g, k) => g.classList.toggle('is-dim', k !== i));
-    const r = d.rows[i];
+    const { row: r, lastTs } = columns[i];
+    const when = lastTs === r.ts ? bucketLabel(r.ts, d.bucket) : `${bucketLabel(r.ts, d.bucket)} – ${bucketLabel(lastTs, d.bucket)}`;
     const split = r.solarInWh > 0 ? [tipRow(null, kwh(r.gridInWh), 'з мережі'), tipRow(null, kwh(r.solarInWh), 'від сонця')] : [];
     tip.replaceChildren(
-      h('div', { class: 'tip-time', text: bucketLabel(r.ts, d.bucket) }),
+      h('div', { class: 'tip-time', text: when }),
       tipRow(COLORS.in, kwh(inWh(r)), 'Отримано', 'bar'),
       tipRow(COLORS.out, kwh(r.outWh), 'Спожито', 'bar'),
       ...split,
@@ -76,15 +111,16 @@ export function createEnergyChart(o: { height?: number } = {}) {
     }
     const plotW = Math.max(1, width - MARGIN.left - MARGIN.right);
     const base = height - MARGIN.bottom;
-    const n = d.rows.length;
+    columns = toColumns(d.rows, Math.floor(plotW / MIN_SLOT_PX));
+    const n = columns.length;
     slotW = plotW / Math.max(1, n);
     // Two columns per bucket with a 2 px gap between them and at least 2 px to the next bucket.
-    const barW = Math.max(1, Math.min(24, Math.floor((slotW - 2) / 2 - 1)));
-    const scale = niceTicks(0, Math.max(0, ...d.rows.map((r) => Math.max(inWh(r), r.outWh))), 4);
+    const barW = Math.max(2, Math.min(24, Math.floor((slotW - 2) / 2 - 1)));
+    const scale = niceTicks(0, Math.max(0, ...columns.map(({ row: r }) => Math.max(inWh(r), r.outWh))), 4);
     const y = linear(scale.min, scale.max, base, MARGIN.top);
     const parts: SVGElement[] = [...yAxis(scale.ticks, y, width, axisKwh)];
     const every = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(plotW / 44))));
-    slots = d.rows.map((r, i) => {
+    slots = columns.map(({ row: r }, i) => {
       const cx = MARGIN.left + slotW * (i + 0.5);
       const bIn = s('path', { class: 'chart-bar', d: barPath(cx - 1 - barW, barW, y(inWh(r)), base) });
       bIn.style.setProperty('fill', COLORS.in);
@@ -99,7 +135,7 @@ export function createEnergyChart(o: { height?: number } = {}) {
   }
 
   const indexAt = (clientX: number) => {
-    const n = data?.rows.length ?? 0;
+    const n = data ? columns.length : 0;
     if (!n) return -1;
     const i = Math.floor((clientX - svg.getBoundingClientRect().left - MARGIN.left) / slotW);
     return Math.max(0, Math.min(n - 1, i));
@@ -114,7 +150,7 @@ export function createEnergyChart(o: { height?: number } = {}) {
   svg.addEventListener('pointercancel', hide);
   svg.addEventListener('blur', hide);
   svg.addEventListener('keydown', (e) => {
-    const n = data?.rows.length ?? 0;
+    const n = data ? columns.length : 0;
     if (!n) return;
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault();
