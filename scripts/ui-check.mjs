@@ -106,6 +106,9 @@ for (const [name, type] of [
   await page.waitForTimeout(1200);
   await shot('home');
   await checkText('home');
+  // The header must keep the safe-area padding (12 px minimum, more under the iPhone status bar).
+  const headerPad = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('.topbar')).paddingTop));
+  if (headerPad < 12) issues.push(`header: padding-top ${headerPad}px ignores the safe area`);
 
   await page.click('[data-output="acOn"]');
   await page.waitForSelector('.sheet-root.open');

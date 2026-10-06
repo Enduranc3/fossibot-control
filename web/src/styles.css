@@ -187,7 +187,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px 8px;
+    /* Not the padding shorthand: padding-top comes from .safe-top (the iPhone status bar). */
+    padding-inline: 20px;
+    padding-bottom: 8px;
   }
   .brand {
     font-size: 17px;
