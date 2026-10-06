@@ -740,6 +740,201 @@
   .settings .segmented {
     margin-top: 10px;
   }
+  .chart-card {
+    margin-top: 12px;
+    padding: 14px 14px 8px;
+  }
+  .chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .chart-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .chart-toggle {
+    padding: 5px 10px;
+    border-radius: 9px;
+    background: var(--color-surface-2);
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .chart-toggle[aria-pressed='true'] {
+    color: var(--color-text);
+  }
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-muted);
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-key {
+    display: inline-block;
+    flex: none;
+    background: var(--key);
+  }
+  .legend-line {
+    width: 14px;
+    height: 2px;
+    border-radius: 1px;
+  }
+  .legend-bar {
+    width: 8px;
+    height: 10px;
+    margin: 0 3px;
+    border-radius: 2px 2px 0 0;
+  }
+  .legend-band {
+    width: 12px;
+    height: 10px;
+    border-radius: 2px;
+    opacity: 0.4;
+  }
+  .chart-body {
+    position: relative;
+    margin-top: 6px;
+    transition: opacity 200ms;
+  }
+  .chart-card[data-loading='true'] .chart-body,
+  .chart-card[data-loading='true'] .chart-table {
+    opacity: 0.5;
+  }
+  .chart-empty {
+    position: absolute;
+    inset: 0 0 24px 40px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    color: var(--color-muted);
+    pointer-events: none;
+  }
+  .chart {
+    position: relative;
+  }
+  .chart-svg {
+    display: block;
+    width: 100%;
+    overflow: visible;
+    touch-action: pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+    outline: none;
+  }
+  .chart-svg:focus-visible {
+    outline: 2px solid rgb(255 255 255 / 0.25);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  .chart-grid {
+    stroke: var(--color-line);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+  .chart-axis {
+    fill: var(--color-muted);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chart-band {
+    fill: var(--chart-outage);
+    opacity: 0.12;
+  }
+  .chart-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .chart-area {
+    stroke: none;
+    opacity: 0.1;
+  }
+  .chart-cross {
+    stroke: rgb(255 255 255 / 0.3);
+    stroke-width: 1;
+  }
+  .chart-dot {
+    stroke: var(--color-surface);
+    stroke-width: 2;
+  }
+  .chart-tip {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    min-width: 132px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgb(28 33 35 / 0.94);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .tip-time {
+    margin-bottom: 4px;
+    color: var(--color-muted);
+  }
+  .tip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.6;
+  }
+  .tip-row b {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .tip-row span:last-child {
+    color: var(--color-muted);
+  }
+  .tip-extra {
+    padding-left: 20px;
+  }
+  .chart-table {
+    margin-top: 8px;
+    max-height: 320px;
+    overflow: auto;
+  }
+  .chart-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .chart-table th {
+    position: sticky;
+    top: 0;
+    padding: 6px 4px;
+    background: var(--color-surface);
+    font-weight: 500;
+    color: var(--color-muted);
+    text-align: right;
+  }
+  .chart-table td {
+    padding: 5px 4px;
+    border-top: 1px solid rgb(255 255 255 / 0.04);
+    text-align: right;
+  }
+  .chart-table th:first-child,
+  .chart-table td:first-child {
+    text-align: left;
+  }
+  .chart-table-empty {
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
 }
 
 @keyframes fade-in {
