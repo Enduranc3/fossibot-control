@@ -18,6 +18,17 @@
 @layer base {
   :root {
     color-scheme: dark;
+    /* Chart colours, validated with the dataviz palette validator on the card surface #131718 (dark). */
+    --chart-in: #d95926;
+    --chart-out: #3987e5;
+    --chart-soc: #26a862;
+    --chart-outage: #ff5c5c;
+    /* Outage-hours heat scale, one red hue (ordinal: monotone lightness, light end ≥ 2:1 on the surface). */
+    --heat-1: #803132;
+    --heat-2: #a03a3a;
+    --heat-3: #c04544;
+    --heat-4: #df504f;
+    --heat-5: #ff5c5c;
   }
   html,
   body {
