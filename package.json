@@ -10,6 +10,7 @@
     "test": "TZ=Europe/Kyiv vitest run",
     "typecheck": "tsc --noEmit",
     "sim": "node tools/station-sim.ts",
+    "seed": "node tools/seed-history.ts .dev-data",
     "build:hub": "node scripts/build-hub.mjs",
     "build:web": "vite build --config web/vite.config.ts && node scripts/build-sw.mjs",
     "build": "npm run build:web && npm run build:hub",
