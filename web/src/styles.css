@@ -1300,6 +1300,24 @@
     font-weight: 600;
     color: var(--color-accent);
   }
+  .hub-info > .kv {
+    border-top: 1px solid rgb(255 255 255 / 0.05);
+  }
+  .export-row {
+    flex-wrap: wrap;
+  }
+  .export-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .export-controls .select {
+    max-width: 128px;
+  }
+  .export-controls .btn-small {
+    display: inline-flex;
+    align-items: center;
+  }
 }
 
 @keyframes fade-in {

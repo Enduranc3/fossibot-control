@@ -9,7 +9,8 @@ import { buildRoutes } from './api/routes.ts';
 import { Auth } from './auth.ts';
 import { CommandQueue } from './command-queue.ts';
 import type { HubContext, StateView } from './context.ts';
-import { openDb } from './db.ts';
+import { backupDue, listBackups, spawnBackup } from './backup.ts';
+import { openDb, usedBytes } from './db.ts';
 import { EventDetector, type GridRule } from './event-detector.ts';
 import { insertEvent } from './events-store.ts';
 import { LoadAverager, learnCapacity, runtimeHours } from './forecast.ts';
@@ -20,6 +21,7 @@ import { PushService, webPushSender, type PushSend } from './push.ts';
 import { Recorder } from './recorder.ts';
 import { rollupHours } from './rollup.ts';
 import { StationLink } from './station-link.ts';
+import { VERSION } from './version.ts';
 
 export interface HubConfig {
   dataDir: string;
@@ -41,6 +43,10 @@ export interface HubConfig {
   pushSubject?: string;
   /** Replaces the real web-push sender (tests). */
   pushSend?: PushSend;
+  /** Daily backups go here (spec §4); omitted = no backups. */
+  backupDir?: string;
+  /** Replaces the child-process backup (tests). */
+  backupRunner?: (dbPath: string, dir: string) => Promise<void>;
   log?: (m: string) => void;
 }
 
@@ -68,7 +74,8 @@ const nowSec = () => Math.floor(Date.now() / 1000);
 export async function startHub(cfg: HubConfig): Promise<RunningHub> {
   const log = cfg.log ?? ((m: string) => console.log(`[hub] ${new Date().toISOString()} ${m}`));
   mkdirSync(cfg.dataDir, { recursive: true });
-  const db = openDb(join(cfg.dataDir, 'hub.db'));
+  const dbPath = join(cfg.dataDir, 'hub.db');
+  const db = openDb(dbPath);
   const auth = new Auth(db);
   const prefs = new PrefsStore(db);
   const link = new StationLink({
@@ -153,7 +160,13 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     };
   };
 
-  const ctx: HubContext = { db, auth, queue, prefs, state, push };
+  const info = () => ({
+    version: VERSION,
+    dbBytes: usedBytes(db),
+    budgetBytes: 10e9,
+    backup: { dir: cfg.backupDir ?? null, last: cfg.backupDir ? (listBackups(cfg.backupDir)[0] ?? null) : null },
+  });
+  const ctx: HubContext = { db, auth, queue, prefs, state, push, info };
   const server = createHttpServer({
     routes: buildRoutes(ctx),
     auth,
@@ -189,6 +202,22 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
   const rollup = () => runSafely('rollup', () => rollupHours(db, nowSec()), log);
   rollup();
   const rollupTimer = setInterval(rollup, 600_000);
+  let backupRunning = false;
+  const backup = () => {
+    const dir = cfg.backupDir;
+    if (!dir || backupRunning || !backupDue(dir, nowSec())) return;
+    backupRunning = true;
+    (cfg.backupRunner ?? spawnBackup)(dbPath, dir)
+      .then(
+        () => log(`backup written to ${dir}`),
+        (err: unknown) => log(`backup failed: ${err instanceof Error ? err.message : String(err)}`),
+      )
+      .finally(() => {
+        backupRunning = false;
+      });
+  };
+  backup();
+  const backupTimer = setInterval(backup, 600_000);
 
   return {
     httpPort: (server.address() as AddressInfo).port,
@@ -200,6 +229,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
       clearInterval(pruneTimer);
       push.stop();
       clearInterval(rollupTimer);
+      clearInterval(backupTimer);
       flush();
       liveHub.close();
       server.closeAllConnections();

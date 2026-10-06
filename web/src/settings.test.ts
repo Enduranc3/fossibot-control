@@ -32,6 +32,7 @@ function deps(over: Partial<UiDeps> = {}): UiDeps {
   store.set({ view: view(), hub: 'online' });
   const api = {
     updatePrefs: vi.fn(async () => ({})),
+    hubInfo: vi.fn(async () => ({ version: 'v0.4.0', dbBytes: 1e8, budgetBytes: 1e10, backup: { dir: '/b', last: null } })),
     prefs: vi.fn(async () => ({
       socLowThreshold: 20,
       capacityWh: 1024,
@@ -127,6 +128,7 @@ describe('settings page', () => {
     expect(text).toContain('10-01-02-07');
     expect(text).toContain('iPhone · Safari');
     expect(text).toContain('Цей пристрій');
+    expect(text).toContain('0.10 ГБ з 10 ГБ');
     expect(text).not.toMatch(/NaN|undefined/);
     const capacity = page.el.querySelector('input[aria-label="Ємність батареї"]') as HTMLInputElement;
     expect(capacity.value).toBe('1024');

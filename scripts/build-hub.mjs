@@ -11,5 +11,6 @@ await build({
   external: ['bufferutil', 'utf-8-validate'],
   // ws is CommonJS; give the ESM bundle a require().
   banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" },
+  define: { __FOSSIBOT_VERSION__: JSON.stringify(process.env.FOSSIBOT_VERSION ?? 'dev') },
   logLevel: 'info',
 });

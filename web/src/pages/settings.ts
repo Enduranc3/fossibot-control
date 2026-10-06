@@ -1,3 +1,4 @@
+import { createHubInfo } from '../components/hub-info.ts';
 import { createNotifySettings } from '../components/notify-settings.ts';
 import { createSettingRow } from '../components/setting-row.ts';
 import type { UiDeps } from '../deps.ts';
@@ -73,6 +74,7 @@ export function createSettingsPage(deps: UiDeps): Page {
 
   const info = h('div', { class: 'card list' });
   const notifications = createNotifySettings(deps, browserPushEnv());
+  const hubInfo = createHubInfo(deps);
 
   const el = h(
     'div',
@@ -82,7 +84,7 @@ export function createSettingsPage(deps: UiDeps): Page {
     h('h2', { class: 'section-title', text: 'Сповіщення' }),
     notifications.el,
     h('h2', { class: 'section-title', text: 'Хаб' }),
-    h('div', { class: 'card list' }, h('div', { class: 'kv' }, h('span', { text: 'Ємність батареї' }), h('span', {}, capacity, ' Вт·год')), sessions, logout),
+    h('div', { class: 'card list' }, h('div', { class: 'kv' }, h('span', { text: 'Ємність батареї' }), h('span', {}, capacity, ' Вт·год')), hubInfo.el, sessions, logout),
     h('h2', { class: 'section-title', text: 'Інформація' }),
     info,
   );

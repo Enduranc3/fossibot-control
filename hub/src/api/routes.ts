@@ -121,6 +121,14 @@ export function buildRoutes(ctx: HubContext): Route[] {
     },
     { method: 'GET', path: '/api/state', handler: () => ({ json: ctx.state() }) },
     {
+      method: 'GET',
+      path: '/api/hub/info',
+      handler: () => {
+        if (!ctx.info) throw new HttpError(503, 'unavailable');
+        return { json: ctx.info() };
+      },
+    },
+    {
       method: 'POST',
       path: '/api/command',
       handler: async (req) => {

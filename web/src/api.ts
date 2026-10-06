@@ -1,4 +1,4 @@
-import type { EnergyBucket, EnergyRow, EventPage, HistoryResult, Outage, OutageCalendar, Prefs, Session, StateView } from './types.ts';
+import type { EnergyBucket, EnergyRow, EventPage, HistoryResult, HubInfo, Outage, OutageCalendar, Prefs, Session, StateView } from './types.ts';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -88,6 +88,7 @@ export const api = {
   pushSubscribe: (sub: PushSubscriptionJSON) => request<{ ok: true }>('POST', '/api/push/subscription', sub),
   pushUnsubscribe: (endpoint: string) => request<{ ok: true }>('DELETE', withQuery('/api/push/subscription', { endpoint })),
   pushTest: () => request<{ sent: number }>('POST', '/api/push/test', {}),
+  hubInfo: () => request<HubInfo>('GET', '/api/hub/info'),
 };
 
 export type Api = typeof api;

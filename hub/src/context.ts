@@ -1,5 +1,6 @@
 import type { Snapshot } from '../../shared/telemetry.ts';
 import type { Auth } from './auth.ts';
+import type { BackupFile } from './backup.ts';
 import type { CommandQueue } from './command-queue.ts';
 import type { Db } from './db.ts';
 import type { GridStatus } from './event-detector.ts';
@@ -28,11 +29,19 @@ export interface StateView {
   today: EnergyTotals;
 }
 
+export interface HubInfo {
+  version: string;
+  dbBytes: number;
+  budgetBytes: number;
+  backup: { dir: string | null; last: BackupFile | null };
+}
+
 export interface HubContext {
   db: Db;
   auth: Auth;
   queue: CommandQueue;
   prefs: PrefsStore;
   push?: PushService;
+  info?(): HubInfo;
   state(): StateView;
 }
