@@ -5,3 +5,5 @@ export type { Prefs } from '../../hub/src/prefs.ts';
 export type { Session } from '../../hub/src/auth.ts';
 export type { HubEvent } from '../../shared/events.ts';
 export type { Snapshot } from '../../shared/telemetry.ts';
+export type { EnergyBucket, EnergyRow, EventPage, HistoryResult, OutageCalendar } from '../../hub/src/history.ts';
+export type { EventSource, EventType } from '../../shared/events.ts';

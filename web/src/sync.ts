@@ -18,6 +18,8 @@ export function applyLive(store: Store<AppState>, m: LiveMessage, now = Date.now
       if (view) store.set({ view: { ...view, grid: { present: m.present, sinceSec: m.sinceSec } } });
       return;
     case 'event':
+      store.set({ lastEvent: m.event });
+      return;
     case 'ping':
       return;
   }

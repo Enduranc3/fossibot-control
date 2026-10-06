@@ -70,3 +70,13 @@ describe('helpers', () => {
     expect(out).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('lastEvent', () => {
+  it('keeps the last event pushed by the hub for pages that list events', () => {
+    const store = createAppStore();
+    expect(store.get().lastEvent).toBeNull();
+    const event = { id: 7, ts: 100, type: 'grid_lost' as const, source: 'hub' as const, data: { soc: 80 } };
+    applyLive(store, { type: 'event', event });
+    expect(store.get().lastEvent).toEqual(event);
+  });
+});

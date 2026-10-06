@@ -1,4 +1,4 @@
-import type { Prefs, Session, StateView } from './types.ts';
+import type { EnergyBucket, EnergyRow, EventPage, HistoryResult, Outage, OutageCalendar, Prefs, Session, StateView } from './types.ts';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -56,6 +56,16 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path
   throw new ApiError(res.status, code, message);
 }
 
+type Query = Record<string, string | number | undefined>;
+
+/** Appends the non-empty parameters as a query string. */
+export function withQuery(path: string, q: Query): string {
+  const parts = Object.entries(q)
+    .filter(([, v]) => v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);
+  return parts.length ? `${path}?${parts.join('&')}` : path;
+}
+
 export const api = {
   authStatus: () => request<{ setUp: boolean; loggedIn: boolean }>('GET', '/api/auth/status'),
   setup: (password: string) => request<{ ok: true }>('POST', '/api/setup', { password }),
@@ -67,6 +77,13 @@ export const api = {
   updatePrefs: (patch: Partial<Prefs>) => request<Prefs>('PUT', '/api/prefs', patch),
   sessions: () => request<(Session & { current: boolean })[]>('GET', '/api/sessions'),
   revokeSession: (id: string) => request<{ ok: true }>('DELETE', `/api/sessions/${encodeURIComponent(id)}`),
+  history: (from: number, to: number, metrics: readonly string[], points: number) =>
+    request<HistoryResult>('GET', withQuery('/api/history', { from, to, metrics: metrics.join(','), points })),
+  energy: (from: number, to: number, bucket: EnergyBucket) => request<EnergyRow[]>('GET', withQuery('/api/energy', { from, to, bucket })),
+  outages: (from: number, to: number) => request<Outage[]>('GET', withQuery('/api/outages', { from, to })),
+  calendar: (month: string) => request<OutageCalendar>('GET', withQuery('/api/outages/calendar', { month })),
+  events: (q: { types?: readonly string[]; cursor?: number; limit?: number } = {}) =>
+    request<EventPage>('GET', withQuery('/api/events', { type: q.types?.join(','), cursor: q.cursor, limit: q.limit })),
 };
 
 export type Api = typeof api;

@@ -1,4 +1,4 @@
-import type { StateView } from './types.ts';
+import type { HubEvent, StateView } from './types.ts';
 
 export type Listener<T> = (state: T, prev: T) => void;
 
@@ -37,6 +37,8 @@ export interface AppState {
   lastDataAt: number | null;
   /** register id → value being written; the UI shows these as pending */
   pending: Record<string, number>;
+  /** last event pushed by the hub; pages that list events watch it (never persisted) */
+  lastEvent: HubEvent | null;
 }
 
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -69,7 +71,7 @@ function load(storage: StorageLike): Pick<AppState, 'view' | 'lastDataAt'> | nul
  */
 export function createAppStore(storage: StorageLike | null = null): Store<AppState> {
   const saved = storage ? load(storage) : null;
-  const store = new Store<AppState>({ view: saved?.view ?? null, hub: 'connecting', lastDataAt: saved?.lastDataAt ?? null, pending: {} });
+  const store = new Store<AppState>({ view: saved?.view ?? null, hub: 'connecting', lastDataAt: saved?.lastDataAt ?? null, pending: {}, lastEvent: null });
   if (storage) {
     let lastWrite = -Infinity;
     store.subscribe((st, prev) => {

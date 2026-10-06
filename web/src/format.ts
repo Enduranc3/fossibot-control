@@ -95,3 +95,47 @@ export function describeAgent(ua: string): string {
   if (!device && !browser) return 'Невідомий пристрій';
   return [device, browser].filter(Boolean).join(' · ');
 }
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+export const MONTHS = ['Січень', 'Лютий', 'Березень', 'Квітень', 'Травень', 'Червень', 'Липень', 'Серпень', 'Вересень', 'Жовтень', 'Листопад', 'Грудень'];
+const MONTHS_GEN = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня', 'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+const MONTHS_SHORT = ['січ', 'лют', 'бер', 'квіт', 'трав', 'черв', 'лип', 'серп', 'вер', 'жовт', 'лист', 'груд'];
+const WEEKDAYS = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+/** 'YYYY-MM-DD' of the local day. */
+export function dateValue(sec: number): string {
+  const d = new Date(sec * 1000);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+export function fmtDay(sec: number, withYear = false): string {
+  const d = new Date(sec * 1000);
+  return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}${withYear ? ` ${d.getFullYear()}` : ''}`;
+}
+
+export function fmtDayShort(sec: number, withYear = false): string {
+  const d = new Date(sec * 1000);
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}${withYear ? ` ${d.getFullYear()}` : ''}`;
+}
+
+export function fmtMonthShort(sec: number): string {
+  return MONTHS_SHORT[new Date(sec * 1000).getMonth()];
+}
+
+export function fmtDateTime(sec: number): string {
+  return `${fmtDayShort(sec)}, ${fmtClock(sec)}`;
+}
+
+export function fmtWeekdayDay(sec: number): string {
+  return `${WEEKDAYS[new Date(sec * 1000).getDay()]}, ${fmtDayShort(sec)}`;
+}
+
+/** «Сьогодні», «Вчора» or the date (with the year when it is not this year). */
+export function dayHeader(sec: number, nowSec: number): string {
+  const key = dateValue(sec);
+  if (key === dateValue(nowSec)) return 'Сьогодні';
+  const yesterday = new Date(nowSec * 1000);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (key === dateValue(yesterday.getTime() / 1000)) return 'Вчора';
+  return fmtDay(sec, new Date(sec * 1000).getFullYear() !== new Date(nowSec * 1000).getFullYear());
+}

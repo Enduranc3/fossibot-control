@@ -51,3 +51,21 @@ describe('request', () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('history endpoints', () => {
+  it('builds query strings and skips empty parameters', async () => {
+    const fn = stubFetch(200, { events: [], nextCursor: null });
+    await api.history(10, 20, ['soc', 'in_w'], 400);
+    await api.energy(10, 20, 'day');
+    await api.calendar('2026-10');
+    await api.events();
+    await api.events({ types: ['grid_lost', 'grid_restored'], cursor: 41, limit: 50 });
+    expect(fn.mock.calls.map((c) => (c as unknown as [string])[0])).toEqual([
+      '/api/history?from=10&to=20&metrics=soc%2Cin_w&points=400',
+      '/api/energy?from=10&to=20&bucket=day',
+      '/api/outages/calendar?month=2026-10',
+      '/api/events',
+      '/api/events?type=grid_lost%2Cgrid_restored&cursor=41&limit=50',
+    ]);
+  });
+});
