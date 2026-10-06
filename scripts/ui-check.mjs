@@ -14,6 +14,9 @@ import { StationSimulator } from '../tools/station-sim.ts';
 const out = resolve(process.argv[2] ?? 'ui-check');
 mkdirSync(out, { recursive: true });
 const PASSWORD = 'ui-check-password';
+// WebKit runs as iPhone Safari in a tab: that is the first visit on the phone, and Playwright's
+// WebKit build has no push service (its pushManager.getSubscription() blocks the page).
+const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 
 const dataDir = mkdtempSync(join(tmpdir(), 'ui-check-'));
 {
@@ -67,6 +70,7 @@ for (const [name, type] of [
     colorScheme: 'dark',
     locale: 'uk-UA',
     timezoneId: 'Europe/Kyiv',
+    userAgent: name === 'webkit' ? IPHONE_UA : undefined,
   });
   if (name === 'chromium') await ctx.addInitScript(PERF);
   const page = await ctx.newPage();
