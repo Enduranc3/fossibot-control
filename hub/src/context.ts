@@ -5,6 +5,7 @@ import type { Db } from './db.ts';
 import type { GridStatus } from './event-detector.ts';
 import type { Outage } from './outages.ts';
 import type { PrefsStore } from './prefs.ts';
+import type { PushService } from './push.ts';
 import type { LinkState } from './station-link.ts';
 
 export interface EnergyTotals {
@@ -32,5 +33,6 @@ export interface HubContext {
   auth: Auth;
   queue: CommandQueue;
   prefs: PrefsStore;
+  push?: PushService;
   state(): StateView;
 }

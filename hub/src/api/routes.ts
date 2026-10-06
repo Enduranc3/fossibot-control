@@ -3,6 +3,7 @@ import { CommandError } from '../command-queue.ts';
 import type { HubContext } from '../context.ts';
 import { HttpError, clearSessionCookie, sessionCookie, type ApiResponse, type Route } from './http.ts';
 import { HISTORY_METRICS, exportCsv, listEvents, listOutages, outageCalendar, queryEnergy, queryHistory, type HistoryMetric } from '../history.ts';
+import { validSubscription } from '../push.ts';
 
 const STATUS_BY_COMMAND_ERROR = { invalid: 400, not_confirmed: 409, station_offline: 503 } as const;
 
@@ -37,6 +38,11 @@ function range(q: URLSearchParams): { from: number; to: number } {
 }
 
 const nowSec = () => Math.floor(Date.now() / 1000);
+
+function pushOf(ctx: HubContext) {
+  if (!ctx.push) throw new HttpError(503, 'push_unavailable', 'Сповіщення недоступні');
+  return ctx.push;
+}
 
 export function buildRoutes(ctx: HubContext): Route[] {
   return [
@@ -144,6 +150,35 @@ export function buildRoutes(ctx: HubContext): Route[] {
         } catch (err) {
           throw new HttpError(400, 'invalid', err instanceof Error ? err.message : String(err));
         }
+      },
+    },
+    { method: 'GET', path: '/api/push/key', handler: () => ({ json: { publicKey: pushOf(ctx).publicKey() } }) },
+    {
+      method: 'POST',
+      path: '/api/push/subscription',
+      handler: (req) => {
+        const sub = validSubscription(req.body);
+        if (!sub) throw new HttpError(400, 'bad_subscription', 'Некоректна підписка');
+        pushOf(ctx).subscribe(sub);
+        return { json: { ok: true } };
+      },
+    },
+    {
+      method: 'DELETE',
+      path: '/api/push/subscription',
+      handler: (req) => {
+        pushOf(ctx).unsubscribe(req.query.get('endpoint') ?? '');
+        return { json: { ok: true } };
+      },
+    },
+    {
+      method: 'POST',
+      path: '/api/push/test',
+      handler: async () => {
+        const push = pushOf(ctx);
+        if (push.count() === 0) throw new HttpError(409, 'no_subscriptions', 'Немає підписаних пристроїв');
+        const sent = await push.broadcast({ title: 'Перевірка сповіщень', body: 'Сповіщення з хаба працюють', tag: 'test', url: '/#/settings' });
+        return { json: { sent } };
       },
     },
     {

@@ -17,6 +17,7 @@ const hub = await startHub({
   allowedStationPrefix: env.FOSSIBOT_STATION_ALLOW ?? '192.168.8.',
   allowedOrigins: (env.FOSSIBOT_ORIGINS ?? '').split(',').filter(Boolean),
   webDir,
+  pushSubject: env.FOSSIBOT_PUSH_SUBJECT ?? (env.FOSSIBOT_ORIGINS ?? '').split(',').find((o) => o.startsWith('https://')),
 });
 console.log(`[hub] listening: http 127.0.0.1:${hub.httpPort}, station :${hub.stationPort}`);
 

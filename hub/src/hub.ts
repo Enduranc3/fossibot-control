@@ -16,6 +16,7 @@ import { LoadAverager, learnCapacity, runtimeHours } from './forecast.ts';
 import { energyTotalsSince, localMidnight } from './history.ts';
 import { OutageTracker } from './outages.ts';
 import { PrefsStore } from './prefs.ts';
+import { PushService, webPushSender, type PushSend } from './push.ts';
 import { Recorder } from './recorder.ts';
 import { rollupHours } from './rollup.ts';
 import { StationLink } from './station-link.ts';
@@ -36,6 +37,10 @@ export interface HubConfig {
   liveHeartbeatMs?: number;
   /** Built web app to serve (dist/web); omitted = API only. */
   webDir?: string;
+  /** VAPID subject: the public https origin or a mailto: address. */
+  pushSubject?: string;
+  /** Replaces the real web-push sender (tests). */
+  pushSend?: PushSend;
   log?: (m: string) => void;
 }
 
@@ -76,6 +81,12 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
   const recorder = new Recorder(db);
   const outages = new OutageTracker(db);
   const load = new LoadAverager();
+  const push = new PushService({
+    db,
+    prefs: () => prefs.get(),
+    send: cfg.pushSend ?? webPushSender(cfg.pushSubject ?? 'https://github.com/Enduranc3/fossibot-control'),
+    log,
+  });
   let latest: Snapshot | null = null;
   let live: LiveHub | null = null;
 
@@ -97,6 +108,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     );
     if (!stored) pendingEvents.push(e);
     live?.broadcast({ type: 'event', event: { ...e, id } });
+    push.onEvent(e);
   };
 
   const detector = new EventDetector({
@@ -141,7 +153,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     };
   };
 
-  const ctx: HubContext = { db, auth, queue, prefs, state };
+  const ctx: HubContext = { db, auth, queue, prefs, state, push };
   const server = createHttpServer({
     routes: buildRoutes(ctx),
     auth,
@@ -186,6 +198,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     async stop() {
       clearInterval(flushTimer);
       clearInterval(pruneTimer);
+      push.stop();
       clearInterval(rollupTimer);
       flush();
       liveHub.close();
