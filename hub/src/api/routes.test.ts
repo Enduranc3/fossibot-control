@@ -139,7 +139,7 @@ describe('request hygiene', () => {
 
   it('serves health without auth', async () => {
     const { a } = await loggedIn();
-    expect(await (await a.call('GET', '/api/health')).json()).toEqual({ ok: true, link: 'up' });
+    expect(await (await a.call('GET', '/api/health')).json()).toEqual({ ok: true, link: 'up', version: 'dev' });
   });
 });
 describe('history routes', () => {

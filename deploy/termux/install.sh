@@ -17,9 +17,11 @@ if [ "$REL" != "$TARGET" ]; then
 fi
 ln -sfn "$TARGET" "$BASE/current"
 
+# A new file and a rename: fossibot-update may be the script running this install right now.
 for cmd in fossibot-update fossibot-passwd; do
-  cp "$TARGET/deploy/termux/$cmd" "$PREFIX/bin/$cmd"
-  chmod 755 "$PREFIX/bin/$cmd"
+  cp "$TARGET/deploy/termux/$cmd" "$PREFIX/bin/$cmd.tmp"
+  chmod 755 "$PREFIX/bin/$cmd.tmp"
+  mv -f "$PREFIX/bin/$cmd.tmp" "$PREFIX/bin/$cmd"
 done
 
 SVC="$PREFIX/var/service/fossibot-hub"

@@ -4,6 +4,7 @@ import type { HubContext } from '../context.ts';
 import { HttpError, clearSessionCookie, sessionCookie, type ApiResponse, type Route } from './http.ts';
 import { HISTORY_METRICS, exportCsv, listEvents, listOutages, outageCalendar, queryEnergy, queryHistory, type HistoryMetric } from '../history.ts';
 import { validSubscription } from '../push.ts';
+import { VERSION } from '../version.ts';
 
 const STATUS_BY_COMMAND_ERROR = { invalid: 400, not_confirmed: 409, station_offline: 503 } as const;
 
@@ -50,7 +51,7 @@ export function buildRoutes(ctx: HubContext): Route[] {
       method: 'GET',
       path: '/api/health',
       public: true,
-      handler: () => ({ json: { ok: true, link: ctx.state().link } }),
+      handler: () => ({ json: { ok: true, link: ctx.state().link, version: VERSION } }),
     },
     {
       method: 'GET',
