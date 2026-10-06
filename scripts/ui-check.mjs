@@ -124,7 +124,8 @@ for (const [name, type] of [
   await bottom('home-bottom');
 
   sim.setGrid(false);
-  await page.waitForSelector('text=Відключення', { timeout: 15_000 });
+  // The status dot, not the text: the «Відключення» tab label is always on the page.
+  await page.waitForSelector('.hero .status-line .dot[data-state="bad"]', { timeout: 15_000 });
   await page.waitForTimeout(800);
   await shot('outage');
   await checkText('outage');
