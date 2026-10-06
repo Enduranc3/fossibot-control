@@ -32,6 +32,11 @@ function deps(over: Partial<UiDeps> = {}): UiDeps {
   store.set({ view: view(), hub: 'online' });
   const api = {
     updatePrefs: vi.fn(async () => ({})),
+    prefs: vi.fn(async () => ({
+      socLowThreshold: 20,
+      capacityWh: 1024,
+      notify: { grid_lost: true, grid_restored: true, soc_low: true, link_lost: true, fault_set: true, output_changed: false, setting_changed: false, hub_started: false },
+    })),
     sessions: vi.fn(async () => [
       { id: 'a', createdTs: 1, lastSeenTs: 1_759_700_000, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Version/18.0 Safari/604.1', current: true },
       { id: 'b', createdTs: 1, lastSeenTs: 1_759_600_000, userAgent: 'Mozilla/5.0 (Macintosh) Chrome/130.0 Safari/537.36', current: false },
@@ -116,6 +121,7 @@ describe('settings page', () => {
     await flush();
     const text = page.el.textContent ?? '';
     expect(text).toContain('Станція');
+    expect(text).toContain('Сповіщення');
     expect(text).toContain('Хаб');
     expect(text).toContain('Інформація');
     expect(text).toContain('10-01-02-07');

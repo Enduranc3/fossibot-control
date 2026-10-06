@@ -1288,6 +1288,18 @@
   .more-btn:disabled {
     opacity: 0.5;
   }
+  .notify-head {
+    align-items: center;
+  }
+  .notify-status {
+    color: var(--color-text);
+    line-height: 1.35;
+  }
+  .link-accent {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-accent);
+  }
 }
 
 @keyframes fade-in {

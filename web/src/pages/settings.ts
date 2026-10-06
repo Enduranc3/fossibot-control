@@ -1,6 +1,8 @@
+import { createNotifySettings } from '../components/notify-settings.ts';
 import { createSettingRow } from '../components/setting-row.ts';
 import type { UiDeps } from '../deps.ts';
 import { DASH, describeAgent, fmtClock, fmtHex } from '../format.ts';
+import { browserPushEnv } from '../push.ts';
 import type { Page } from '../router.ts';
 import { STATION_SETTINGS } from '../settings-def.ts';
 import type { AppState } from '../store.ts';
@@ -70,12 +72,15 @@ export function createSettingsPage(deps: UiDeps): Page {
   });
 
   const info = h('div', { class: 'card list' });
+  const notifications = createNotifySettings(deps, browserPushEnv());
 
   const el = h(
     'div',
     { class: 'settings' },
     h('h2', { class: 'section-title', text: 'Станція' }),
     h('div', { class: 'card list' }, ...rows.map((r) => r.el)),
+    h('h2', { class: 'section-title', text: 'Сповіщення' }),
+    notifications.el,
     h('h2', { class: 'section-title', text: 'Хаб' }),
     h('div', { class: 'card list' }, h('div', { class: 'kv' }, h('span', { text: 'Ємність батареї' }), h('span', {}, capacity, ' Вт·год')), sessions, logout),
     h('h2', { class: 'section-title', text: 'Інформація' }),

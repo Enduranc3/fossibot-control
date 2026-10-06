@@ -1,7 +1,7 @@
 // Service worker: keeps the app shell available without a network; never caches /api.
 // Built separately by scripts/build-sw.mjs into dist/web/sw.js.
 
-export const CACHE_NAME = 'fossibot-shell-v1';
+export const CACHE_NAME = 'fossibot-shell-v2';
 export const SHELL_URLS = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/apple-touch-icon.png'];
 
 export type Strategy = 'network-only' | 'cache-first' | 'network-first';
@@ -10,6 +10,28 @@ export function strategyFor(url: URL, origin: string): Strategy {
   if (url.origin !== origin || url.pathname.startsWith('/api/')) return 'network-only';
   if (url.pathname.startsWith('/assets/')) return 'cache-first';
   return 'network-first';
+}
+
+export interface NotificationSpec {
+  title: string;
+  options: { body: string; tag: string; icon: string; badge: string; data: { url: string } };
+}
+
+/** A push payload from the hub as a notification; only same-site paths are opened on tap. */
+export function notificationFrom(data: unknown): NotificationSpec {
+  const d = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const str = (v: unknown, fallback: string) => (typeof v === 'string' && v ? v : fallback);
+  const url = str(d.url, '/');
+  return {
+    title: str(d.title, 'Fossibot'),
+    options: {
+      body: str(d.body, ''),
+      tag: str(d.tag, 'fossibot'),
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: url.startsWith('/') && !url.startsWith('//') ? url : '/' },
+    },
+  };
 }
 
 export interface SwCache {
@@ -45,12 +67,30 @@ interface FetchEvent extends ExtendableEvent {
   request: Request;
   respondWith(r: Promise<Response>): void;
 }
+interface PushEvent extends ExtendableEvent {
+  data: { json(): unknown } | null;
+}
+interface NotificationClickEvent extends ExtendableEvent {
+  notification: { data: unknown; close(): void };
+}
+interface WindowClientLike {
+  url: string;
+  focus(): Promise<unknown>;
+  navigate(url: string): Promise<unknown>;
+}
 interface Scope {
   location: Location;
   skipWaiting(): Promise<void>;
-  clients: { claim(): Promise<void> };
+  clients: {
+    claim(): Promise<void>;
+    matchAll(o: { type: 'window'; includeUncontrolled: boolean }): Promise<WindowClientLike[]>;
+    openWindow(url: string): Promise<unknown>;
+  };
+  registration: { showNotification(title: string, options: NotificationSpec['options']): Promise<void> };
   addEventListener(type: 'install' | 'activate', fn: (e: ExtendableEvent) => void): void;
   addEventListener(type: 'fetch', fn: (e: FetchEvent) => void): void;
+  addEventListener(type: 'push', fn: (e: PushEvent) => void): void;
+  addEventListener(type: 'notificationclick', fn: (e: NotificationClickEvent) => void): void;
 }
 
 const isWorker = typeof (globalThis as { ServiceWorkerGlobalScope?: unknown }).ServiceWorkerGlobalScope !== 'undefined';
@@ -99,5 +139,27 @@ if (isWorker) {
       return;
     }
     e.respondWith(networkFirst(req, (r) => fetch(r), swCache));
+  });
+
+  sw.addEventListener('push', (e) => {
+    let data: unknown = null;
+    try {
+      data = e.data?.json() ?? null;
+    } catch {
+      // not JSON: show the generic notification
+    }
+    const n = notificationFrom(data);
+    e.waitUntil(sw.registration.showNotification(n.title, n.options));
+  });
+
+  sw.addEventListener('notificationclick', (e) => {
+    e.notification.close();
+    const url = notificationFrom({ url: (e.notification.data as { url?: unknown } | null)?.url }).options.data.url;
+    e.waitUntil(
+      sw.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        const open = list[0];
+        return open ? open.navigate(url).then(() => open.focus()) : sw.clients.openWindow(url);
+      }),
+    );
   });
 }

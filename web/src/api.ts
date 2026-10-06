@@ -84,6 +84,10 @@ export const api = {
   calendar: (month: string) => request<OutageCalendar>('GET', withQuery('/api/outages/calendar', { month })),
   events: (q: { types?: readonly string[]; cursor?: number; limit?: number } = {}) =>
     request<EventPage>('GET', withQuery('/api/events', { type: q.types?.join(','), cursor: q.cursor, limit: q.limit })),
+  pushKey: () => request<{ publicKey: string }>('GET', '/api/push/key'),
+  pushSubscribe: (sub: PushSubscriptionJSON) => request<{ ok: true }>('POST', '/api/push/subscription', sub),
+  pushUnsubscribe: (endpoint: string) => request<{ ok: true }>('DELETE', withQuery('/api/push/subscription', { endpoint })),
+  pushTest: () => request<{ sent: number }>('POST', '/api/push/test', {}),
 };
 
 export type Api = typeof api;

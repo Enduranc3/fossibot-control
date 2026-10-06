@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { registerServiceWorker } from './pwa.ts';
-import { networkFirst, strategyFor, type SwCache } from './sw.ts';
+import { networkFirst, notificationFrom, strategyFor, type SwCache } from './sw.ts';
 
 const O = 'https://fossibot-hub.x.ts.net';
 const u = (p: string) => new URL(p, O);
@@ -67,3 +67,16 @@ describe('networkFirst', () => {
   });
 });
 
+describe('notifications', () => {
+  it('turns a push payload into a notification that opens the right page', () => {
+    expect(notificationFrom({ title: 'Зникло світло', body: 'заряд 84%', tag: 'grid_lost', url: '/#/outages' })).toEqual({
+      title: 'Зникло світло',
+      options: { body: 'заряд 84%', tag: 'grid_lost', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', data: { url: '/#/outages' } },
+    });
+  });
+
+  it('survives an empty or broken payload', () => {
+    expect(notificationFrom(null).title).toBe('Fossibot');
+    expect(notificationFrom({ url: 'https://evil.example/' }).options.data.url).toBe('/');
+  });
+});
