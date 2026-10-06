@@ -2,36 +2,57 @@ import type { HubEvent } from '../../shared/events.ts';
 import type { EnergyTotals } from './context.ts';
 import { SAMPLE_COLUMNS, type Db } from './db.ts';
 import { rowToOutage, type Outage, type OutageRow } from './outages.ts';
+import { rolledUntil } from './rollup.ts';
 
 export const HISTORY_METRICS = SAMPLE_COLUMNS.filter((c) => c !== 'ts') as Exclude<(typeof SAMPLE_COLUMNS)[number], 'ts'>[];
 export type HistoryMetric = (typeof HISTORY_METRICS)[number];
+export type HistoryTable = 'samples_1s' | 'samples_10s' | 'samples_1h';
 
 export interface HistoryResult {
-  table: 'samples_1s' | 'samples_10s';
+  table: HistoryTable;
   bucketSec: number;
   ts: number[];
   series: Record<string, { avg: (number | null)[]; min: (number | null)[]; max: (number | null)[] }>;
 }
 
+/** ≤ 6 h: 1-second rows; ≤ 8 days: 10-second rows; longer: hourly averages (a year is ~8 760 rows, not ~3 M). */
+export function tableFor(spanSec: number): HistoryTable {
+  if (spanSec <= 6 * 3600) return 'samples_1s';
+  if (spanSec <= 8 * 86_400) return 'samples_10s';
+  return 'samples_1h';
+}
+
+const BASE_SEC: Record<HistoryTable, number> = { samples_1s: 1, samples_10s: 10, samples_1h: 3600 };
+const round1 = (v: number | null) => (v === null ? null : Math.round(v * 10) / 10);
+
 export function queryHistory(db: Db, q: { from: number; to: number; metrics: HistoryMetric[]; points: number }): HistoryResult {
   const span = Math.max(1, q.to - q.from);
-  const table = span <= 6 * 3600 ? 'samples_1s' : 'samples_10s';
-  const base = table === 'samples_1s' ? 1 : 10;
+  const table = tableFor(span);
+  const base = BASE_SEC[table];
   const bucketSec = Math.max(base, Math.ceil(span / q.points / base) * base);
   const metrics = q.metrics.filter((m) => (HISTORY_METRICS as string[]).includes(m));
   const select = metrics.map((m) => `avg(${m}) AS "${m}.avg", min(${m}) AS "${m}.min", max(${m}) AS "${m}.max"`).join(', ');
+  let source = `${table} WHERE ts >= ? AND ts < ?`;
+  let params = [q.from, q.to];
+  if (table === 'samples_1h') {
+    // Hours not rolled up yet are averaged straight from the 10-second rows, so long charts reach the present.
+    // Before the first rollup (no 10-second rows yet) everything comes from the hourly table.
+    const split = Math.min(q.to, Math.max(q.from, rolledUntil(db) ?? q.to));
+    const hourly = HISTORY_METRICS.map((m) => `avg(${m}) AS ${m}`).join(', ');
+    source = `(SELECT ts, ${HISTORY_METRICS.join(', ')} FROM samples_1h WHERE ts >= ? AND ts < ?
+               UNION ALL
+               SELECT (ts / 3600) * 3600 AS h, ${hourly} FROM samples_10s WHERE ts >= ? AND ts < ? GROUP BY h)`;
+    params = [q.from, split, split, q.to];
+  }
   const rows = db
-    .prepare(
-      `SELECT (ts / ${bucketSec}) * ${bucketSec} AS b${select ? `, ${select}` : ''}
-       FROM ${table} WHERE ts >= ? AND ts < ? GROUP BY b ORDER BY b`,
-    )
-    .all(q.from, q.to) as Record<string, number | null>[];
+    .prepare(`SELECT (ts / ${bucketSec}) * ${bucketSec} AS b${select ? `, ${select}` : ''} FROM ${source} GROUP BY b ORDER BY b`)
+    .all(...params) as Record<string, number | null>[];
   const series: HistoryResult['series'] = {};
   for (const m of metrics) {
     series[m] = {
-      avg: rows.map((r) => (r[`${m}.avg`] === null ? null : Math.round((r[`${m}.avg`] as number) * 10) / 10)),
-      min: rows.map((r) => r[`${m}.min`]),
-      max: rows.map((r) => r[`${m}.max`]),
+      avg: rows.map((r) => round1(r[`${m}.avg`])),
+      min: rows.map((r) => round1(r[`${m}.min`])),
+      max: rows.map((r) => round1(r[`${m}.max`])),
     };
   }
   return { table, bucketSec, ts: rows.map((r) => r.b as number), series };
@@ -48,10 +69,12 @@ export interface EnergyRow {
   usbOutWh: number;
 }
 
+export type EnergyBucket = 'hour' | 'day' | 'month';
+
 const BUCKET_FORMAT = { hour: '%Y-%m-%d %H:00', day: '%Y-%m-%d', month: '%Y-%m' } as const;
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
-export function queryEnergy(db: Db, q: { from: number; to: number; bucket: 'hour' | 'day' | 'month' }): EnergyRow[] {
+export function queryEnergy(db: Db, q: { from: number; to: number; bucket: EnergyBucket }): EnergyRow[] {
   const rows = db
     .prepare(
       `SELECT strftime('${BUCKET_FORMAT[q.bucket]}', hour_ts, 'unixepoch', 'localtime') AS label, min(hour_ts) AS ts,
@@ -95,7 +118,14 @@ export function listOutages(db: Db, from: number, to: number): Outage[] {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-export function outageCalendar(db: Db, month: string, nowSec: number) {
+export interface OutageCalendar {
+  days: { date: string; outageSec: number }[];
+  count: number;
+  totalSec: number;
+  longestSec: number;
+}
+
+export function outageCalendar(db: Db, month: string, nowSec: number): OutageCalendar {
   const [y, m] = month.split('-').map(Number);
   const monthStart = new Date(y, m - 1, 1).getTime() / 1000;
   const monthEnd = new Date(y, m, 1).getTime() / 1000;
@@ -127,7 +157,12 @@ interface EventRow {
   data: string;
 }
 
-export function listEvents(db: Db, q: { from?: number; to?: number; types?: string[]; cursor?: number; limit: number }) {
+export interface EventPage {
+  events: HubEvent[];
+  nextCursor: number | null;
+}
+
+export function listEvents(db: Db, q: { from?: number; to?: number; types?: string[]; cursor?: number; limit: number }): EventPage {
   const where: string[] = [];
   const params: (number | string)[] = [];
   if (q.from !== undefined) where.push('ts >= ?'), params.push(q.from);

@@ -51,6 +51,8 @@ const MIGRATIONS: string[] = [
      auth TEXT NOT NULL, created_ts INTEGER NOT NULL
    );
    CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
+  // 2: hourly averages for charts over long ranges (filled from samples_10s by rollup.ts).
+  sampleTable('samples_1h'),
 ];
 
 export function openDb(path: string): Db {

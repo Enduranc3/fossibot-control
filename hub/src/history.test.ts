@@ -35,10 +35,10 @@ describe('queryHistory', () => {
     expect(r.series.soc.avg[0]).toBe(50);
   });
 
-  it('uses 10-second samples and stays within the point budget for a year', () => {
+  it('uses 10-second samples for a week and stays within the point budget', () => {
     const db = openDb(':memory:');
     seedSamples(db, 'samples_10s', OCT1, 8640 * 3, 10); // 3 days of data
-    const r = queryHistory(db, { from: OCT1 - 365 * 86_400, to: OCT1 + 3 * 86_400, metrics: ['out_w'], points: 500 });
+    const r = queryHistory(db, { from: OCT1 - 4 * 86_400, to: OCT1 + 3 * 86_400, metrics: ['out_w'], points: 500 });
     expect(r.table).toBe('samples_10s');
     expect(r.ts.length).toBeLessThanOrEqual(500);
     expect(r.bucketSec % 10).toBe(0);

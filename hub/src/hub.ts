@@ -17,6 +17,7 @@ import { energyTotalsSince, localMidnight } from './history.ts';
 import { OutageTracker } from './outages.ts';
 import { PrefsStore } from './prefs.ts';
 import { Recorder } from './recorder.ts';
+import { rollupHours } from './rollup.ts';
 import { StationLink } from './station-link.ts';
 
 export interface HubConfig {
@@ -173,6 +174,9 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     );
   const flushTimer = setInterval(flush, cfg.flushIntervalMs ?? 10_000);
   const pruneTimer = setInterval(() => runSafely('prune', () => recorder.prune(nowSec()), log), 3_600_000);
+  const rollup = () => runSafely('rollup', () => rollupHours(db, nowSec()), log);
+  rollup();
+  const rollupTimer = setInterval(rollup, 600_000);
 
   return {
     httpPort: (server.address() as AddressInfo).port,
@@ -182,6 +186,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
     async stop() {
       clearInterval(flushTimer);
       clearInterval(pruneTimer);
+      clearInterval(rollupTimer);
       flush();
       liveHub.close();
       server.closeAllConnections();

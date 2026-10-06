@@ -17,10 +17,11 @@ describe('openDb', () => {
       'outages',
       'push_subscriptions',
       'samples_10s',
+      'samples_1h',
       'samples_1s',
       'sessions',
     ]);
-    expect((db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version).toBe(1);
+    expect((db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version).toBe(2);
   });
 
   it('keeps data and version when reopened from a file', () => {
