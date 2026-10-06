@@ -42,12 +42,16 @@ export function validSubscription(v: unknown): PushSubscriptionJson | null {
   return { endpoint: o.endpoint, keys: { p256dh: o.keys.p256dh, auth: o.keys.auth } };
 }
 
-export function webPushSender(subject: string): PushSend {
+type Transport = (sub: PushSubscriptionJson, payload: string, options: webpush.RequestOptions) => Promise<unknown>;
+
+export function webPushSender(subject: string, transport: Transport = webpush.sendNotification): PushSend {
   return async (sub, payload, keys) => {
-    await webpush.sendNotification(sub, payload, {
+    await transport(sub, payload, {
       vapidDetails: { subject, publicKey: keys.publicKey, privateKey: keys.privateKey },
       TTL: 6 * 3600,
       urgency: 'high',
+      // Without mobile internet a request would otherwise wait for the kernel's connect timeout.
+      timeout: 15_000,
     });
   };
 }

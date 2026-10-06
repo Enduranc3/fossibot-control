@@ -45,8 +45,12 @@ export interface HubConfig {
   pushSend?: PushSend;
   /** Daily backups go here (spec §4); omitted = no backups. */
   backupDir?: string;
-  /** Replaces the child-process backup (tests). */
-  backupRunner?: (dbPath: string, dir: string) => Promise<void>;
+  /** Replaces the child-process backup (tests); the signal aborts it when the hub stops. */
+  backupRunner?: (dbPath: string, dir: string, signal: AbortSignal) => Promise<void>;
+  /** How often to check whether a backup is due (default 10 min). */
+  backupIntervalMs?: number;
+  /** Clock for the backup schedule (tests). */
+  backupClock?: () => number;
   log?: (m: string) => void;
 }
 
@@ -203,11 +207,12 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
   rollup();
   const rollupTimer = setInterval(rollup, 600_000);
   let backupRunning = false;
+  const backupAbort = new AbortController();
   const backup = () => {
     const dir = cfg.backupDir;
-    if (!dir || backupRunning || !backupDue(dir, nowSec())) return;
+    if (!dir || backupRunning || backupAbort.signal.aborted || !backupDue(dir, (cfg.backupClock ?? nowSec)())) return;
     backupRunning = true;
-    (cfg.backupRunner ?? spawnBackup)(dbPath, dir)
+    (cfg.backupRunner ?? spawnBackup)(dbPath, dir, backupAbort.signal)
       .then(
         () => log(`backup written to ${dir}`),
         (err: unknown) => log(`backup failed: ${err instanceof Error ? err.message : String(err)}`),
@@ -217,7 +222,7 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
       });
   };
   backup();
-  const backupTimer = setInterval(backup, 600_000);
+  const backupTimer = setInterval(backup, cfg.backupIntervalMs ?? 600_000);
 
   return {
     httpPort: (server.address() as AddressInfo).port,
@@ -230,6 +235,8 @@ export async function startHub(cfg: HubConfig): Promise<RunningHub> {
       push.stop();
       clearInterval(rollupTimer);
       clearInterval(backupTimer);
+      // A copy in progress holds a read transaction on the database: end it before the hub goes.
+      backupAbort.abort();
       flush();
       liveHub.close();
       server.closeAllConnections();

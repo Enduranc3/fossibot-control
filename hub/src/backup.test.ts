@@ -1,9 +1,9 @@
-import { mkdtempSync, existsSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
-import { backupDue, backupName, listBackups, makeBackup } from './backup.ts';
+import { BACKUP_TABLES, backupDue, backupName, listBackups, makeBackup } from './backup.ts';
 import { kvSet, openDb, SAMPLE_COLUMNS } from './db.ts';
 import { insertEvent } from './events-store.ts';
 
@@ -19,12 +19,13 @@ function sourceDb() {
   insertEvent(db, { ts: 100, type: 'grid_lost', source: 'hub', data: { soc: 50 } });
   insertEvent(db, { ts: 200, type: 'grid_restored', source: 'hub', data: { soc: 60 } });
   kvSet(db, 'password_hash', 'scrypt$x');
+  kvSet(db, 'vapid_keys', { publicKey: 'pub', privateKey: 'priv' });
   db.prepare("INSERT INTO sessions (id, token_hash, created_ts, last_seen_ts) VALUES ('s', 'h', 1, 1)").run();
   return { db, path };
 }
 
 describe('backups', () => {
-  it('copies everything except 1-second samples and login sessions', () => {
+  it('copies everything except 1-second samples, login sessions and the password hash', () => {
     const { db, path } = sourceDb();
     const dir = mkdtempSync(join(tmpdir(), 'backup-out-'));
     const file = makeBackup(path, dir, at(6, 4));
@@ -33,11 +34,32 @@ describe('backups', () => {
     const copy = new DatabaseSync(file, { readOnly: true });
     const count = (t: string) => (copy.prepare(`SELECT count(*) AS n FROM ${t}`).get() as { n: number }).n;
     expect([count('samples_1s'), count('sessions'), count('samples_10s'), count('events')]).toEqual([0, 0, 1, 2]);
-    expect((copy.prepare("SELECT value FROM kv WHERE key = 'password_hash'").get() as { value: string }).value).toBe('"scrypt$x"');
+    // The copy sits on shared storage: no password hash (fossibot-passwd sets a new one after a restore),
+    // but the VAPID keys stay, or restored push subscriptions would silently stop working.
+    expect(copy.prepare("SELECT value FROM kv WHERE key = 'password_hash'").get()).toBeUndefined();
+    expect(copy.prepare("SELECT value FROM kv WHERE key = 'vapid_keys'").get()).toBeDefined();
     expect((copy.prepare('SELECT max(id) AS id FROM events').get() as { id: number }).id).toBe(2);
     expect((copy.prepare('PRAGMA journal_mode').get() as { journal_mode: string }).journal_mode).toBe('delete');
     copy.close();
     expect(existsSync(`${file}.tmp`)).toBe(false);
+  });
+
+  it('builds the copy next to the database and puts only the finished file into the backup folder', () => {
+    const { db, path } = sourceDb();
+    const work = dirname(path);
+    // Leftovers of a copy killed half-way must not be "recovered" into the next one.
+    writeFileSync(join(work, '.fossibot-2026-10-06.db.tmp-wal'), 'garbage from a killed backup');
+    const dir = mkdtempSync(join(tmpdir(), 'backup-shared-'));
+    makeBackup(path, dir, at(6, 4));
+    db.close();
+    expect(readdirSync(dir)).toEqual(['fossibot-2026-10-06.db']);
+    expect(readdirSync(work).filter((f) => f.startsWith('.fossibot-'))).toEqual([]);
+  });
+
+  it('backs up every table except the ones it leaves out on purpose', () => {
+    const db = openDb(':memory:');
+    const tables = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as { name: string }[]).map((t) => t.name);
+    expect([...BACKUP_TABLES, 'samples_1s', 'sessions'].sort()).toEqual(tables.sort());
   });
 
   it('keeps the seven newest copies', () => {

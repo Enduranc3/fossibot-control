@@ -5,7 +5,7 @@ import { CommandQueue } from './command-queue.ts';
 import type { HubContext } from './context.ts';
 import { openDb } from './db.ts';
 import { PrefsStore } from './prefs.ts';
-import { PushService, payloadFor, validSubscription, vapidKeys, type PushSend } from './push.ts';
+import { PushService, payloadFor, validSubscription, vapidKeys, webPushSender, type PushSend } from './push.ts';
 import { FakeLink, cookieFrom, startApi } from './test-helpers.ts';
 
 afterEach(() => vi.useRealTimers());
@@ -38,6 +38,12 @@ describe('push building blocks', () => {
     expect(validSubscription({ endpoint: SUB.endpoint })).toBeNull();
     expect(validSubscription({ ...SUB, endpoint: `https://x/${'a'.repeat(2100)}` })).toBeNull();
     expect(validSubscription('nope')).toBeNull();
+  });
+
+  it('gives up on a push request after 15 s instead of hanging without mobile internet', async () => {
+    const transport = vi.fn(async () => ({ statusCode: 201, body: '', headers: {} }));
+    await webPushSender('https://hub.example', transport)(SUB, '{}', { publicKey: 'pub', privateKey: 'priv' });
+    expect(transport).toHaveBeenCalledWith(SUB, '{}', expect.objectContaining({ timeout: 15_000, vapidDetails: { subject: 'https://hub.example', publicKey: 'pub', privateKey: 'priv' } }));
   });
 
   it('words notifications like the journal and links to the right page', () => {
