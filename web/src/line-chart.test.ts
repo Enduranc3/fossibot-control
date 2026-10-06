@@ -71,6 +71,16 @@ describe('line chart', () => {
     chart.destroy();
   });
 
+  it('merges outage bands closer than 2 px, so a year of daily outages is one calm wash, not stripes', () => {
+    const chart = createLineChart({ label: 'Заряд', format: String });
+    document.body.append(chart.el);
+    // 1000 s over 290 px: 3.4 s per px. Bands 2 s apart merge, a 100 s gap stays.
+    chart.update({ ...DATA, bands: [[100, 150], [152, 200], [300, 400]] });
+    const bands = [...chart.el.querySelectorAll('.chart-band')];
+    expect(bands).toHaveLength(2);
+    expect(Number(bands[0].getAttribute('width'))).toBeCloseTo(29, 0);
+  });
+
   it('renders an empty window with axes and without NaN', () => {
     const chart = createLineChart({ label: 'Заряд', format: String });
     document.body.append(chart.el);

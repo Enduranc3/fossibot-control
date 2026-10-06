@@ -57,6 +57,17 @@ export function yAxis(ticks: readonly number[], y: (v: number) => number, width:
   });
 }
 
+/** Joins pixel intervals (sorted) that are less than 2 px apart: overlapping translucent strips would read as stripes. */
+export function mergeBands(bands: readonly (readonly [number, number])[]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [a, b] of bands) {
+    const last = out[out.length - 1];
+    if (last && a - last[1] < 2) last[1] = Math.max(last[1], b);
+    else out.push([a, b]);
+  }
+  return out;
+}
+
 /** Places the tooltip beside x, on whichever side has more room. */
 export function placeTip(tip: HTMLElement, x: number, width: number): void {
   tip.style.left = `${r1(x)}px`;
@@ -137,8 +148,8 @@ export function createLineChart(o: LineChartOptions) {
       : niceTicks(o.yMin ?? Math.min(0, ...values), o.yMax ?? Math.max(0, ...values), 4);
     y = linear(scale.min, scale.max, base, MARGIN.top);
     const parts: SVGElement[] = [];
-    for (const [a, b] of d.bands) {
-      parts.push(s('rect', { class: 'chart-band', x: r1(x(a)), y: MARGIN.top, width: Math.max(1, r1(x(b) - x(a))), height: base - MARGIN.top }));
+    for (const [x0, x1] of mergeBands(d.bands.map(([a, b]) => [x(a), x(b)] as const))) {
+      parts.push(s('rect', { class: 'chart-band', x: r1(x0), y: MARGIN.top, width: Math.max(1, r1(x1 - x0)), height: base - MARGIN.top }));
     }
     parts.push(...yAxis(scale.ticks, y, width, o.axisFormat ?? o.format));
     for (const tk of timeTicks(d.from, d.to, Math.max(2, Math.floor(plotWidth() / 70)))) parts.push(xLabel(x(tk.t), width, tk.label, height - 6));

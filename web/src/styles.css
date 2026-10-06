@@ -1126,6 +1126,14 @@
     font-size: 11px;
     color: var(--color-muted);
   }
+  .heat-title {
+    flex-basis: 100%;
+  }
+  .period-stats .stat-v,
+  .outage-stats .stat-v {
+    font-size: 16px;
+    white-space: nowrap;
+  }
   .heat-step {
     display: inline-flex;
     align-items: center;

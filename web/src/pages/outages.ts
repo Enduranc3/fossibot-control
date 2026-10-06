@@ -70,7 +70,7 @@ export function createOutagesPage(deps: UiDeps, opts: { now?: () => number } = {
     h(
       'div',
       { class: 'heat-legend' },
-      h('span', { text: 'Годин без світла:' }),
+      h('span', { class: 'heat-title', text: 'Годин без світла за день' }),
       ...HEAT_LEGEND.map((t, i) => h('span', { class: 'heat-step' }, h('span', { class: 'heat-swatch', attrs: { 'data-level': String(i) } }), t)),
     ),
   );
