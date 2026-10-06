@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Sets (or resets) the site password; every logged-in device has to sign in again.
+set -eu
+BASE=${FOSSIBOT_BASE:-$HOME/fossibot-hub}
+export FOSSIBOT_DATA_DIR="${FOSSIBOT_DATA_DIR:-$HOME/.fossibot}"
+exec node "$BASE/current/hub/hub.mjs" passwd

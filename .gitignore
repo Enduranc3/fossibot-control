@@ -7,3 +7,4 @@ dist/
 *.db-shm
 .dev-data/
 ui-check/
+fossibot-hub-*.tar.gz

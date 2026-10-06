@@ -25,6 +25,7 @@
     "shared",
     "hub",
     "tools",
+    "deploy",
     "web"
   ]
 }

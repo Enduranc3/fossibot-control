@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          FOSSIBOT_VERSION: ${{ github.ref_name }}
+      - run: sh scripts/pack-release.sh "$GITHUB_REF_NAME"
+      - run: gh release create "$GITHUB_REF_NAME" "fossibot-hub-$GITHUB_REF_NAME.tar.gz" --title "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
