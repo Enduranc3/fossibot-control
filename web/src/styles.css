@@ -1041,6 +1041,170 @@
     grid-template-columns: repeat(3, 1fr);
     margin-top: 12px;
   }
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .month-title {
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .outage-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 12px;
+  }
+  .calendar {
+    margin-top: 12px;
+    padding: 12px;
+  }
+  .cal-week,
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-week span {
+    padding-bottom: 4px;
+    font-size: 11px;
+    color: var(--color-muted);
+    text-align: center;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 9px;
+    background: var(--color-surface-2);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+    transition: transform 150ms var(--ease-out-soft);
+  }
+  .cal-day[data-level='1'] {
+    background: var(--heat-1);
+  }
+  .cal-day[data-level='2'] {
+    background: var(--heat-2);
+  }
+  .cal-day[data-level='3'] {
+    background: var(--heat-3);
+  }
+  .cal-day[data-level='4'] {
+    background: var(--heat-4);
+  }
+  .cal-day[data-level='5'] {
+    background: var(--heat-5);
+  }
+  .cal-day[data-level='4'],
+  .cal-day[data-level='5'] {
+    color: #1f0a0a;
+    font-weight: 600;
+  }
+  .cal-day[data-today='true'] {
+    outline: 2px solid var(--color-text);
+    outline-offset: -2px;
+  }
+  .cal-day[aria-pressed='true'] {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+  .cal-day:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .cal-day:active:not(:disabled) {
+    transform: scale(0.94);
+  }
+  .heat-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--color-muted);
+  }
+  .heat-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .heat-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--color-surface-2);
+  }
+  .heat-swatch[data-level='1'] {
+    background: var(--heat-1);
+  }
+  .heat-swatch[data-level='2'] {
+    background: var(--heat-2);
+  }
+  .heat-swatch[data-level='3'] {
+    background: var(--heat-3);
+  }
+  .heat-swatch[data-level='4'] {
+    background: var(--heat-4);
+  }
+  .heat-swatch[data-level='5'] {
+    background: var(--heat-5);
+  }
+  .list-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .show-all {
+    font-size: 13px;
+    color: var(--color-accent);
+  }
+  .outages[data-loading='true'] .calendar,
+  .outages[data-loading='true'] .outage-list,
+  .outages[data-loading='true'] .outage-stats {
+    opacity: 0.5;
+  }
+  .outage-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 16px;
+  }
+  .outage-row + .outage-row {
+    border-top: 1px solid rgb(255 255 255 / 0.05);
+  }
+  .outage-date {
+    font-size: 15px;
+  }
+  .outage-time,
+  .outage-meta {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--color-muted);
+  }
+  .outage-side {
+    text-align: right;
+  }
+  .outage-dur {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #ffb3b3;
+  }
+  .empty-note {
+    padding: 16px;
+    font-size: 14px;
+    color: var(--color-muted);
+    text-align: center;
+  }
 }
 
 @keyframes fade-in {
