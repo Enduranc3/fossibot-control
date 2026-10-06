@@ -935,6 +935,12 @@
     font-size: 13px;
     color: var(--color-muted);
   }
+  .chart-bar {
+    transition: opacity 150ms;
+  }
+  .chart-slot.is-dim .chart-bar {
+    opacity: 0.4;
+  }
 }
 
 @keyframes fade-in {
