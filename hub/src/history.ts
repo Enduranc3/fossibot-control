@@ -25,6 +25,12 @@ export function tableFor(spanSec: number): HistoryTable {
 const BASE_SEC: Record<HistoryTable, number> = { samples_1s: 1, samples_10s: 10, samples_1h: 3600 };
 const round1 = (v: number | null) => (v === null ? null : Math.round(v * 10) / 10);
 
+/** Hour of the oldest 10-second row; min() on the primary key is a single index lookup. */
+function firstSampleHour(db: Db): number | null {
+  const { t } = db.prepare('SELECT min(ts) AS t FROM samples_10s').get() as { t: number | null };
+  return t === null ? null : Math.floor(t / 3600) * 3600;
+}
+
 export function queryHistory(db: Db, q: { from: number; to: number; metrics: HistoryMetric[]; points: number }): HistoryResult {
   const span = Math.max(1, q.to - q.from);
   const table = tableFor(span);
@@ -36,8 +42,8 @@ export function queryHistory(db: Db, q: { from: number; to: number; metrics: His
   let params = [q.from, q.to];
   if (table === 'samples_1h') {
     // Hours not rolled up yet are averaged straight from the 10-second rows, so long charts reach the present.
-    // Before the first rollup (no 10-second rows yet) everything comes from the hourly table.
-    const split = Math.min(q.to, Math.max(q.from, rolledUntil(db) ?? q.to));
+    // Before the first rollup the tail starts at the first 10-second row (or there is none at all).
+    const split = Math.min(q.to, Math.max(q.from, rolledUntil(db) ?? firstSampleHour(db) ?? q.to));
     const hourly = HISTORY_METRICS.map((m) => `avg(${m}) AS ${m}`).join(', ');
     source = `(SELECT ts, ${HISTORY_METRICS.join(', ')} FROM samples_1h WHERE ts >= ? AND ts < ?
                UNION ALL

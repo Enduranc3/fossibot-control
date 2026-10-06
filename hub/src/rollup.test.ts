@@ -50,6 +50,15 @@ describe('queryHistory over long ranges', () => {
     expect(r.series.in_w.avg).toEqual([100, 200, 300]);
   });
 
+  it('shows 10-second rows on long charts before any hour has been rolled up', () => {
+    const db = openDb(':memory:');
+    seed10s(db, OCT1, 300, () => 150); // 50 minutes: no finished hour, so no rollup yet
+    expect(rollupHours(db, OCT1 + 3000)).toBe(0);
+    const r = queryHistory(db, { from: OCT1 - 30 * 86_400, to: OCT1 + 3000, metrics: ['in_w'], points: 600 });
+    expect(r.table).toBe('samples_1h');
+    expect(r.series.in_w.avg).toEqual([150]);
+  });
+
   it('keeps a year within the point budget', () => {
     const db = openDb(':memory:');
     const ins = db.prepare(`INSERT INTO samples_1h (${SAMPLE_COLUMNS.join(',')}) VALUES (${SAMPLE_COLUMNS.map(() => '?').join(',')})`);
