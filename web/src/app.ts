@@ -3,6 +3,7 @@ import type { UiDeps } from './deps.ts';
 import { fmtClock } from './format.ts';
 import { LiveClient, liveUrl } from './live.ts';
 import { createAuthPage } from './pages/auth.ts';
+import { createChartsPage } from './pages/charts.ts';
 import { createHomePage } from './pages/home.ts';
 import { createSettingsPage } from './pages/settings.ts';
 import { Router } from './router.ts';
@@ -14,6 +15,7 @@ import { toast } from './ui/toast.ts';
 
 export const TABS = [
   { path: '/', label: 'Головна', icon: ICONS.home },
+  { path: '/charts', label: 'Графіки', icon: ICONS.chart },
   { path: '/settings', label: 'Налаштування', icon: ICONS.sliders },
 ] as const;
 
@@ -84,8 +86,14 @@ export function startApp(root: HTMLElement): () => void {
     },
   };
   const shell = mountShell(root, store);
-  const router = new Router(shell.outlet, { '/': () => createHomePage(deps), '/settings': () => createSettingsPage(deps) }, (p) =>
-    shell.setActive(p),
+  const router = new Router(
+    shell.outlet,
+    {
+      '/': () => createHomePage(deps),
+      '/charts': () => createChartsPage(deps),
+      '/settings': () => createSettingsPage(deps),
+    },
+    (p) => shell.setActive(p),
   );
   const refresh = () =>
     api.state().then(
