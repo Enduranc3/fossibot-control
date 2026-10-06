@@ -5,15 +5,25 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
+import { openDb } from '../hub/src/db.ts';
 import { startHub } from '../hub/src/hub.ts';
+import { queryHistory } from '../hub/src/history.ts';
+import { seedHistory } from '../tools/seed-history.ts';
 import { StationSimulator } from '../tools/station-sim.ts';
 
 const out = resolve(process.argv[2] ?? 'ui-check');
 mkdirSync(out, { recursive: true });
 const PASSWORD = 'ui-check-password';
 
+const dataDir = mkdtempSync(join(tmpdir(), 'ui-check-'));
+{
+  const db = openDb(join(dataDir, 'hub.db'));
+  seedHistory(db, { nowSec: Math.floor(Date.now() / 1000), days: 400 });
+  db.close();
+}
+
 const hub = await startHub({
-  dataDir: mkdtempSync(join(tmpdir(), 'ui-check-')),
+  dataDir,
   httpHost: '127.0.0.1',
   httpPort: 0,
   stationHost: '127.0.0.1',
@@ -29,6 +39,14 @@ await sim.connect();
 const base = `http://127.0.0.1:${hub.httpPort}`;
 const report = { base, browsers: {} };
 let failed = false;
+{
+  const nowSec = Math.floor(Date.now() / 1000);
+  const t0 = performance.now();
+  const year = queryHistory(hub.ctx.db, { from: nowSec - 365 * 86_400, to: nowSec, metrics: ['soc', 'in_w', 'out_w', 'ac_in_w', 'solar_w'], points: 400 });
+  report.yearQueryMs = Math.round(performance.now() - t0);
+  report.yearTable = year.table;
+  if (year.table !== 'samples_1h' || report.yearQueryMs > 150) failed = true;
+}
 
 const PERF = `
   window.__perf = { cls: 0, longest: 0 };
@@ -68,6 +86,8 @@ for (const [name, type] of [
     if (/NaN|undefined/.test(text)) issues.push(`${label}: NaN/undefined in text`);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     if (overflow) issues.push(`${label}: horizontal overflow`);
+    const svgNaN = await page.evaluate(() => /NaN|undefined/.test(document.querySelector('.content')?.innerHTML ?? ''));
+    if (svgNaN) issues.push(`${label}: NaN/undefined in markup`);
   };
 
   await page.goto(base);
@@ -116,6 +136,52 @@ for (const [name, type] of [
   await shot('settings');
   await bottom('settings-bottom');
   await checkText('settings');
+
+  await page.click('a[href="#/charts"]');
+  await page.waitForSelector('.chart-card[data-loading="false"] .chart-line', { state: 'attached', timeout: 15_000 });
+  await page.waitForTimeout(500);
+  await shot('charts-day');
+  await checkText('charts-day');
+  const powerSvg = page.locator('.chart-card').nth(1).locator('.chart-svg');
+  const box = await powerSvg.boundingBox();
+  if (box) await page.touchscreen.tap(box.x + box.width * 0.62, box.y + box.height * 0.5);
+  await page.waitForSelector('.chart-card .chart-tip:not([hidden])', { timeout: 5_000 });
+  await shot('charts-tooltip');
+  await page.click('[data-preset="year"]');
+  await page.waitForFunction(() => document.querySelector('.period-label')?.textContent === 'Останній рік');
+  await page.waitForSelector('.chart-card[data-loading="false"] .chart-line', { state: 'attached', timeout: 15_000 });
+  await page.waitForTimeout(500);
+  await shot('charts-year');
+  await checkText('charts-year');
+  await bottom('charts-bottom');
+  await page.locator('.chart-card').nth(2).locator('.chart-toggle').click();
+  await page.waitForSelector('.chart-table table');
+  await page.locator('.chart-card').nth(2).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: join(out, `${name}-${String(++n).padStart(2, '0')}-charts-table.png`) });
+
+  await page.click('a[href="#/outages"]');
+  await page.waitForSelector('.cal-day');
+  await page.waitForTimeout(400);
+  await shot('outages');
+  await checkText('outages');
+  const darkDay = page.locator('.cal-day:not([data-level="0"]):not([disabled])').first();
+  if (await darkDay.count()) {
+    await darkDay.click();
+    await page.waitForTimeout(250);
+    await shot('outages-day');
+  }
+  await bottom('outages-bottom');
+
+  await page.click('a[href="#/journal"]');
+  await page.waitForSelector('.event-row');
+  await page.waitForTimeout(300);
+  await shot('journal');
+  await checkText('journal');
+  await page.click('[data-filter="grid"]');
+  await page.waitForFunction(() => [...document.querySelectorAll('.event-row')].every((r) => r.getAttribute('data-type')?.startsWith('grid_')));
+  await page.waitForTimeout(250);
+  await shot('journal-grid');
 
   // Hub unreachable: refuse new live sockets and drop the open one on the hub side.
   await page.click('a[href="#/"]');
